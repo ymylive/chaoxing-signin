@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
+  <assemblyIdentity version="1.0.0.0" processorArchitecture="*" name="ChaoxingSignin" type="win32" />
+  <description>Chaoxing Signin Launcher</description>
+  <trustInfo xmlns="urn:schemas-microsoft-com:asm.v3">
+    <security>
+      <requestedPrivileges>
+        <requestedExecutionLevel level="asInvoker" uiAccess="false" />
+      </requestedPrivileges>
+    </security>
+  </trustInfo>
+  <compatibility xmlns="urn:schemas-microsoft-com:compatibility.v1">
+    <application>
+      <supportedOS Id="{8e0f7a12-bfb3-4fe8-b9a5-48fd50a15a9a}" /> <!-- Windows 10/11 -->
+      <supportedOS Id="{1e9b04fb-f9e5-41a1-8b43-8b15feb4f1be}" /> <!-- Windows 8.1 -->
+      <supportedOS Id="{4a2f28e3-e2ae-4b2b-bf5f-8e948b1e8f3d}" /> <!-- Windows 8 -->
+      <supportedOS Id="{e2011457-1546-43c5-a5fe-008deee3d3f0}" /> <!-- Windows 7 -->
+    </application>
+  </compatibility>
+</assembly>

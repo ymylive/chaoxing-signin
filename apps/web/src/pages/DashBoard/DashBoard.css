@@ -1,0 +1,187 @@
+.neum-button {
+  height: 140px;
+  width: 140px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(30px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: white !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.neum-button:hover {
+  transform: scale(1.1) translateY(-5px);
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6);
+}
+
+.text-button {
+  padding: 1rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  direction: rtl;
+}
+
+.hidden {
+  opacity: 0;
+}
+
+.input-area {
+  padding: 0 1rem;
+  margin: 0 auto 1rem;
+  height: 3.5rem;
+  width: 100%;
+  font-size: 1rem;
+  color: white;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(20px);
+  outline: none;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  transition: all 0.3s;
+}
+
+.input-area::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.input-area:focus {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.25);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.05);
+}
+
+.neum-form {
+  color: white !important;
+  min-height: 300px;
+  min-width: 280px;
+  max-width: 380px;
+  padding: 2.5rem;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(40px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: slideUp 0.5s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.form-height {
+  min-height: 100px !important;
+}
+
+.neum-form-button {
+  height: 56px;
+  width: 160px;
+  margin: 2rem auto 0 !important;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: white !important;
+  border-radius: 16px !important;
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+}
+
+.neum-form-button:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+}
+
+.neum-form-button:active {
+  transform: translateY(0px);
+}
+
+.checked::before {
+  display: inline-block;
+  vertical-align: bottom;
+  content: '';
+  height: 2rem;
+  width: 2rem;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.2);
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  background-image: url('../../../public/assets/check.svg');
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 70%;
+  box-shadow: 0 2px 10px rgba(255, 255, 255, 0.15);
+}
+
+.unchecked::before {
+  display: inline-block;
+  vertical-align: bottom;
+  content: '';
+  height: 2rem;
+  width: 2rem;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid rgba(255, 255, 255, 0.15);
+}
+
+h1 {
+  color: white;
+  font-weight: 700;
+  font-size: 2.5rem;
+  text-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  margin: 1.5rem 0;
+}
+
+.form-title {
+  display: inline-block;
+  margin: 0 auto 1.5rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.form-content {
+  opacity: 1;
+  transition: 0.4s;
+}
+
+@media screen and (max-width: 500px) {
+  .neum-form {
+    min-width: 90%;
+    max-width: 90%;
+    padding: 2rem;
+  }
+  
+  .form-title {
+    display: inline-block;
+    margin: 0 auto 1.5rem;
+    font-size: 1rem;
+  }
+  
+  h1 {
+    font-size: 2rem;
+  }
+  
+  .neum-button {
+    height: 120px;
+    width: 120px;
+    font-size: 1.3rem;
+  }
+}
