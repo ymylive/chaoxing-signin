@@ -89,9 +89,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18'
-
-      - name: Setup Java
+          node-version: '22'
         uses: actions/setup-java@v3
         with:
           distribution: 'temurin'
