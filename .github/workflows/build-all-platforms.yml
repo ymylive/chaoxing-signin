@@ -72,7 +72,22 @@ jobs:
           pnpm dlx pkg@5.8.1 -t node18-macos-x64 -o dist/Chaoxing-macos . --assets "apps/server/build/**/*" --assets "apps/web/dist/**/*" --assets "apps/server/src/configs/**/*" --assets "apps/server/src/env.json"
           chmod +x dist/Chaoxing-macos
 
-      - name: Upload macOS artifact
+      - name: Create macOS App Bundle
+        run: |
+          chmod +x scripts/build-macos-app.sh
+          bash scripts/build-macos-app.sh
+        env:
+          MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+          MACOS_CERTIFICATE_PWD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
+          MACOS_CERTIFICATE_NAME: ${{ secrets.MACOS_CERTIFICATE_NAME }}
+
+      - name: Upload macOS App
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-app
+          path: dist/超星学习通签到.dmg
+
+      - name: Upload macOS executable (fallback)
         uses: actions/upload-artifact@v4
         with:
           name: macos-executable
@@ -162,9 +177,51 @@ jobs:
         with:
           files: |
             ./artifacts/windows-exe/Chaoxing.exe
+            ./artifacts/macos-app/*.dmg
             ./artifacts/macos-executable/Chaoxing-macos
             ./artifacts/android-apk/*.apk
           draft: false
           prerelease: false
+          body: |
+            ## 超星学习通签到 - 多平台版本
+
+            ### 📦 下载说明
+
+            #### Windows 用户
+            - 下载 `Chaoxing.exe`
+            - 右键选择"以管理员身份运行"
+            - 浏览器自动打开 http://localhost:5000
+
+            #### macOS 用户
+            - **推荐**: 下载 `超星学习通签到.dmg`
+              1. 双击打开 DMG 文件
+              2. 将应用拖到"应用程序"文件夹
+              3. 首次运行时，右键点击应用选择"打开"
+            - **备选**: 下载 `Chaoxing-macos`
+              1. 打开终端，运行: `chmod +x Chaoxing-macos`
+              2. 运行: `xattr -cr Chaoxing-macos` (移除隔离属性)
+              3. 运行: `./Chaoxing-macos`
+
+            #### Android 用户
+            - 下载 `chaoxing-signin.apk`
+            - 允许安装未知来源应用
+            - 安装并打开应用
+
+            ### ⚠️ macOS 安全提示
+
+            如果遇到"无法打开，因为无法验证开发者"的提示：
+            1. 打开"系统偏好设置" > "安全性与隐私"
+            2. 点击"仍要打开"
+            3. 或在终端运行: `sudo xattr -rd com.apple.quarantine /Applications/超星学习通签到.app`
+
+            ### 🔐 代码签名
+
+            - Windows: 未签名
+            - macOS: ${{ secrets.MACOS_CERTIFICATE && '已签名' || '未签名' }}
+            - Android: 未签名（开发版）
+
+            ### 📝 更新内容
+
+            查看 [CHANGELOG.md](https://github.com/ymylive/chaoxing-signin/blob/main/CHANGELOG.md) 了解详细更新内容。
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
