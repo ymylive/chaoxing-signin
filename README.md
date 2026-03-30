@@ -60,18 +60,19 @@
 4. 在对话框中再次点击"打开"
 
 **方式二：使用命令行版本**
-1. 下载对应版本的可执行文件
+1. 下载 `Chaoxing-macos`（shell 脚本，会自动调用对应的二进制文件）
 2. **右键点击文件**，选择"打开"（首次运行必须）
 3. 在对话框中点击"打开"
-4. 之后可以直接双击运行
+4. 之后可以在终端运行：`./Chaoxing-macos`
 
 **版本选择：**
-- `Chaoxing-macos` - Universal Binary（推荐，支持所有Mac）
-- `Chaoxing-macos-arm64` - Apple Silicon (M1/M2/M3)
-- `Chaoxing-macos-x64` - Intel
+- `Chaoxing-macos` - Universal Binary 包装脚本（推荐，支持所有Mac）
+- `Chaoxing-macos-arm64` - Apple Silicon 包装脚本 (M1/M2/M3)
+- `Chaoxing-macos-x64` - Intel 包装脚本
 
 **⚠️ 重要提示**
 - **首次运行必须右键选择"打开"**，这是 macOS 安全机制
+- 文件是 shell 脚本包装器，会自动调用对应的二进制文件
 - 不能直接双击运行未签名的应用
 - 详细说明：[macOS安全警告解决方案.md](./macOS安全警告解决方案.md)
 

@@ -72,7 +72,7 @@ jobs:
 
           # Build for Intel (x64)
           echo "Building for Intel (x64)..."
-          pnpm dlx pkg@5.8.1 -t node18-macos-x64 -o dist/Chaoxing-macos-x64 . \
+          pnpm dlx pkg@5.8.1 -t node18-macos-x64 -o dist/chaoxing-macos-x64.bin . \
             --assets "apps/server/build/**/*" \
             --assets "apps/web/dist/**/*" \
             --assets "apps/server/src/configs/**/*" \
@@ -80,7 +80,7 @@ jobs:
 
           # Build for Apple Silicon (arm64)
           echo "Building for Apple Silicon (arm64)..."
-          pnpm dlx pkg@5.8.1 -t node18-macos-arm64 -o dist/Chaoxing-macos-arm64 . \
+          pnpm dlx pkg@5.8.1 -t node18-macos-arm64 -o dist/chaoxing-macos-arm64.bin . \
             --assets "apps/server/build/**/*" \
             --assets "apps/web/dist/**/*" \
             --assets "apps/server/src/configs/**/*" \
@@ -88,18 +88,41 @@ jobs:
 
           # Create Universal Binary
           echo "Creating Universal Binary..."
-          lipo -create dist/Chaoxing-macos-x64 dist/Chaoxing-macos-arm64 -output dist/Chaoxing-macos
+          lipo -create dist/chaoxing-macos-x64.bin dist/chaoxing-macos-arm64.bin -output dist/chaoxing-macos.bin
 
-          # Make executable and remove quarantine attributes
-          echo "Setting permissions and removing quarantine..."
-          chmod +x dist/Chaoxing-macos dist/Chaoxing-macos-x64 dist/Chaoxing-macos-arm64
+          # Create shell wrappers
+          echo "Creating shell wrappers..."
 
-          # Remove extended attributes that might cause issues
-          xattr -cr dist/Chaoxing-macos dist/Chaoxing-macos-x64 dist/Chaoxing-macos-arm64 || true
+          # Universal wrapper
+          cat > dist/Chaoxing-macos << 'EOF'
+#!/bin/bash
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+exec "$SCRIPT_DIR/chaoxing-macos.bin" "$@"
+EOF
+
+          # Intel wrapper
+          cat > dist/Chaoxing-macos-x64 << 'EOF'
+#!/bin/bash
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+exec "$SCRIPT_DIR/chaoxing-macos-x64.bin" "$@"
+EOF
+
+          # ARM wrapper
+          cat > dist/Chaoxing-macos-arm64 << 'EOF'
+#!/bin/bash
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+exec "$SCRIPT_DIR/chaoxing-macos-arm64.bin" "$@"
+EOF
+
+          # Make everything executable
+          chmod +x dist/*.bin dist/Chaoxing-macos*
+
+          # Remove extended attributes
+          xattr -cr dist/*.bin dist/Chaoxing-macos* || true
 
           # Verify Universal Binary
           echo "Verifying Universal Binary..."
-          lipo -info dist/Chaoxing-macos
+          lipo -info dist/chaoxing-macos.bin
           ls -lh dist/
 
       - name: Create macOS App Bundle
@@ -121,19 +144,25 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: macos-universal-binary
-          path: dist/Chaoxing-macos
+          path: |
+            dist/Chaoxing-macos
+            dist/chaoxing-macos.bin
 
       - name: Upload macOS Intel Binary
         uses: actions/upload-artifact@v4
         with:
           name: macos-intel-binary
-          path: dist/Chaoxing-macos-x64
+          path: |
+            dist/Chaoxing-macos-x64
+            dist/chaoxing-macos-x64.bin
 
       - name: Upload macOS ARM Binary
         uses: actions/upload-artifact@v4
         with:
           name: macos-arm-binary
-          path: dist/Chaoxing-macos-arm64
+          path: |
+            dist/Chaoxing-macos-arm64
+            dist/chaoxing-macos-arm64.bin
 
   build-android:
     name: Build Android
