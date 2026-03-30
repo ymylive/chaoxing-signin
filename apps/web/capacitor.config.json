@@ -1,0 +1,15 @@
+{
+  "appId": "com.chaoxing.signin",
+  "appName": "超星学习通签到",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 2000,
+      "backgroundColor": "#000000",
+      "showSpinner": false
+    }
+  }
+}

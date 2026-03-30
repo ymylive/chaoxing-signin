@@ -1,0 +1,81 @@
+name: Build Android APK
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build-android:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 9.12.1
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build web app
+        run: pnpm -C apps/web build
+
+      - name: Install Capacitor
+        working-directory: apps/web
+        run: |
+          pnpm add @capacitor/core @capacitor/cli @capacitor/android
+          pnpm exec cap init --web-dir=dist
+
+      - name: Add Android platform
+        working-directory: apps/web
+        run: pnpm exec cap add android
+
+      - name: Sync Capacitor
+        working-directory: apps/web
+        run: pnpm exec cap sync android
+
+      - name: Build Android APK
+        working-directory: apps/web/android
+        run: ./gradlew assembleRelease
+
+      - name: Sign APK
+        working-directory: apps/web/android/app/build/outputs/apk/release
+        run: |
+          # For now, we'll use the unsigned APK
+          # In production, you should sign it with a keystore
+          mv app-release-unsigned.apk chaoxing-signin.apk || mv app-release.apk chaoxing-signin.apk
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: apps/web/android/app/build/outputs/apk/release/chaoxing-signin.apk
+
+      - name: Upload to Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: apps/web/android/app/build/outputs/apk/release/chaoxing-signin.apk
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
