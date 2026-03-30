@@ -66,11 +66,36 @@ jobs:
       - name: Build project
         run: pnpm run prepack:build
 
-      - name: Build macOS executable
+      - name: Build macOS executables (Intel and Apple Silicon)
         run: |
           mkdir -p dist
-          pnpm dlx pkg@5.8.1 -t node18-macos-x64 -o dist/Chaoxing-macos . --assets "apps/server/build/**/*" --assets "apps/web/dist/**/*" --assets "apps/server/src/configs/**/*" --assets "apps/server/src/env.json"
-          chmod +x dist/Chaoxing-macos
+
+          # Build for Intel (x64)
+          echo "Building for Intel (x64)..."
+          pnpm dlx pkg@5.8.1 -t node18-macos-x64 -o dist/Chaoxing-macos-x64 . \
+            --assets "apps/server/build/**/*" \
+            --assets "apps/web/dist/**/*" \
+            --assets "apps/server/src/configs/**/*" \
+            --assets "apps/server/src/env.json"
+
+          # Build for Apple Silicon (arm64)
+          echo "Building for Apple Silicon (arm64)..."
+          pnpm dlx pkg@5.8.1 -t node18-macos-arm64 -o dist/Chaoxing-macos-arm64 . \
+            --assets "apps/server/build/**/*" \
+            --assets "apps/web/dist/**/*" \
+            --assets "apps/server/src/configs/**/*" \
+            --assets "apps/server/src/env.json"
+
+          # Create Universal Binary
+          echo "Creating Universal Binary..."
+          lipo -create dist/Chaoxing-macos-x64 dist/Chaoxing-macos-arm64 -output dist/Chaoxing-macos
+
+          # Make executable
+          chmod +x dist/Chaoxing-macos dist/Chaoxing-macos-x64 dist/Chaoxing-macos-arm64
+
+          # Verify Universal Binary
+          echo "Verifying Universal Binary..."
+          lipo -info dist/Chaoxing-macos
 
       - name: Create macOS App Bundle
         run: |
@@ -81,17 +106,29 @@ jobs:
           MACOS_CERTIFICATE_PWD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
           MACOS_CERTIFICATE_NAME: ${{ secrets.MACOS_CERTIFICATE_NAME }}
 
-      - name: Upload macOS App
+      - name: Upload macOS Universal App
         uses: actions/upload-artifact@v4
         with:
-          name: macos-app
+          name: macos-universal-app
           path: dist/超星学习通签到.dmg
 
-      - name: Upload macOS executable (fallback)
+      - name: Upload macOS Universal Binary
         uses: actions/upload-artifact@v4
         with:
-          name: macos-executable
+          name: macos-universal-binary
           path: dist/Chaoxing-macos
+
+      - name: Upload macOS Intel Binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-intel-binary
+          path: dist/Chaoxing-macos-x64
+
+      - name: Upload macOS ARM Binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-arm-binary
+          path: dist/Chaoxing-macos-arm64
 
   build-android:
     name: Build Android
@@ -177,8 +214,10 @@ jobs:
         with:
           files: |
             ./artifacts/windows-exe/Chaoxing.exe
-            ./artifacts/macos-app/*.dmg
-            ./artifacts/macos-executable/Chaoxing-macos
+            ./artifacts/macos-universal-app/*.dmg
+            ./artifacts/macos-universal-binary/Chaoxing-macos
+            ./artifacts/macos-intel-binary/Chaoxing-macos-x64
+            ./artifacts/macos-arm-binary/Chaoxing-macos-arm64
             ./artifacts/android-apk/*.apk
           draft: false
           prerelease: false
@@ -193,19 +232,46 @@ jobs:
             - 浏览器自动打开 http://localhost:5000
 
             #### macOS 用户
-            - **推荐**: 下载 `超星学习通签到.dmg`
+
+            **推荐下载：**
+            - **超星学习通签到.dmg** - Universal Binary（同时支持Intel和Apple Silicon）
               1. 双击打开 DMG 文件
               2. 将应用拖到"应用程序"文件夹
               3. 首次运行时，右键点击应用选择"打开"
-            - **备选**: 下载 `Chaoxing-macos`
-              1. 打开终端，运行: `chmod +x Chaoxing-macos`
-              2. 运行: `xattr -cr Chaoxing-macos` (移除隔离属性)
-              3. 运行: `./Chaoxing-macos`
+
+            **命令行版本：**
+            - **Chaoxing-macos** - Universal Binary（推荐，支持所有Mac）
+            - **Chaoxing-macos-x64** - 仅Intel芯片
+            - **Chaoxing-macos-arm64** - 仅Apple Silicon (M1/M2/M3)
+
+            **如何选择：**
+            - 不确定？下载 Universal Binary 版本
+            - M1/M2/M3 芯片：所有版本都支持
+            - Intel 芯片：下载 Universal 或 x64 版本
+
+            **安装步骤：**
+            ```bash
+            # 下载后
+            chmod +x Chaoxing-macos
+            xattr -cr Chaoxing-macos
+            ./Chaoxing-macos
+            ```
 
             #### Android 用户
             - 下载 `chaoxing-signin.apk`
             - 允许安装未知来源应用
             - 安装并打开应用
+
+            ### 💻 检查你的Mac芯片类型
+
+            打开终端运行：
+            ```bash
+            uname -m
+            ```
+            - 输出 `arm64` = Apple Silicon (M1/M2/M3)
+            - 输出 `x86_64` = Intel
+
+            或者：点击左上角  > "关于本机" > 查看"芯片"或"处理器"
 
             ### ⚠️ macOS 安全提示
 
@@ -213,6 +279,8 @@ jobs:
             1. 打开"系统偏好设置" > "安全性与隐私"
             2. 点击"仍要打开"
             3. 或在终端运行: `sudo xattr -rd com.apple.quarantine /Applications/超星学习通签到.app`
+
+            详细说明请查看 [macOS安装指南.md](https://github.com/ymylive/chaoxing-signin/blob/main/macOS安装指南.md)
 
             ### 🔐 代码签名
 
@@ -222,6 +290,11 @@ jobs:
 
             ### 📝 更新内容
 
-            查看 [CHANGELOG.md](https://github.com/ymylive/chaoxing-signin/blob/main/CHANGELOG.md) 了解详细更新内容。
+            - ✅ 支持 Apple Silicon (M1/M2/M3) 芯片
+            - ✅ 提供 Universal Binary（同时支持Intel和ARM）
+            - ✅ 优化 macOS 安装体验
+            - ✅ 详细的安装和故障排除文档
+
+            查看完整更新日志：[CHANGELOG.md](https://github.com/ymylive/chaoxing-signin/blob/main/CHANGELOG.md)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

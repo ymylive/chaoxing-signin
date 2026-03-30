@@ -1,11 +1,32 @@
 # macOS 安装和使用指南
 
+## 检查你的Mac芯片类型
+
+在下载前，先确认你的Mac使用的芯片：
+
+**方法一：使用终端**
+```bash
+uname -m
+```
+- 输出 `arm64` = Apple Silicon (M1/M2/M3)
+- 输出 `x86_64` = Intel
+
+**方法二：查看系统信息**
+1. 点击左上角  菜单
+2. 选择"关于本机"
+3. 查看"芯片"或"处理器"字段
+   - 显示"Apple M1/M2/M3" = Apple Silicon
+   - 显示"Intel Core" = Intel
+
 ## 下载和安装
 
 ### 方式一：使用 DMG 安装包（推荐）
 
+**适用于：所有Mac（Intel和Apple Silicon）**
+
 1. **下载 DMG 文件**
    - 从 [Releases](https://github.com/ymylive/chaoxing-signin/releases) 页面下载 `超星学习通签到.dmg`
+   - 这是 Universal Binary，同时支持Intel和Apple Silicon
 
 2. **安装应用**
    - 双击打开 DMG 文件
@@ -19,23 +40,50 @@
 
 ### 方式二：使用命令行可执行文件
 
-1. **下载文件**
-   - 下载 `Chaoxing-macos`
+根据你的芯片类型选择：
 
-2. **赋予执行权限**
-   ```bash
-   chmod +x Chaoxing-macos
-   ```
+#### Universal Binary（推荐）
+**适用于：所有Mac**
 
-3. **移除隔离属性**
-   ```bash
-   xattr -cr Chaoxing-macos
-   ```
+```bash
+# 下载 Chaoxing-macos
+chmod +x Chaoxing-macos
+xattr -cr Chaoxing-macos
+./Chaoxing-macos
+```
 
-4. **运行程序**
-   ```bash
-   ./Chaoxing-macos
-   ```
+#### Apple Silicon 专用版本
+**适用于：M1/M2/M3 芯片**
+
+```bash
+# 下载 Chaoxing-macos-arm64
+chmod +x Chaoxing-macos-arm64
+xattr -cr Chaoxing-macos-arm64
+./Chaoxing-macos-arm64
+```
+
+#### Intel 专用版本
+**适用于：Intel 芯片**
+
+```bash
+# 下载 Chaoxing-macos-x64
+chmod +x Chaoxing-macos-x64
+xattr -cr Chaoxing-macos-x64
+./Chaoxing-macos-x64
+```
+
+## 版本选择指南
+
+| 文件名 | 芯片支持 | 文件大小 | 推荐度 |
+|--------|---------|---------|--------|
+| 超星学习通签到.dmg | Intel + Apple Silicon | ~120MB | ⭐⭐⭐⭐⭐ |
+| Chaoxing-macos | Intel + Apple Silicon | ~450MB | ⭐⭐⭐⭐ |
+| Chaoxing-macos-arm64 | 仅 Apple Silicon | ~430MB | ⭐⭐⭐ |
+| Chaoxing-macos-x64 | 仅 Intel | ~430MB | ⭐⭐⭐ |
+
+**建议：**
+- 不确定？下载 DMG 或 Universal Binary
+- 想要最小文件？根据芯片下载对应版本
 
 ## 常见问题
 
