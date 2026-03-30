@@ -10,6 +10,8 @@ jobs:
   build-windows:
     name: Build Windows Portable
     runs-on: windows-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout code
