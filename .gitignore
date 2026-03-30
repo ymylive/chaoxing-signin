@@ -46,5 +46,6 @@ dist/
 apps/server/src/configs/storage.json
 *.log
 
-# launcher 构建
-launcher/
+# launcher 构建产物
+launcher/build/
+launcher/dist/

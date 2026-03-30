@@ -24,11 +24,14 @@ importers:
         specifier: ^12.0.0
         version: 12.0.0
       crypto-js:
-        specifier: workspace:*
+        specifier: file:../../packages/crypto-js
         version: link:../../packages/crypto-js
       form-data:
         specifier: ^4.0.0
         version: 4.0.0
+      http-errors:
+        specifier: ^2.0.0
+        version: 2.0.0
       jsdom:
         specifier: ^20.0.0
         version: 20.0.3
@@ -38,6 +41,9 @@ importers:
       koa-bodyparser:
         specifier: ^4.3.0
         version: 4.3.0
+      koa-compose:
+        specifier: ^4.1.0
+        version: 4.1.0
       kolorist:
         specifier: ^1.5.1
         version: 1.7.0
@@ -91,13 +97,13 @@ importers:
         specifier: ^8.36.0
         version: 8.36.0
       eslint-config-custom:
-        specifier: workspace:*
-        version: link:../../packages/eslint-config-custom
+        specifier: file:../../packages/eslint-config-custom
+        version: file:packages/eslint-config-custom(turbo@1.8.8)(typescript@4.9.5)
       ts-node:
         specifier: ^10.9.1
         version: 10.9.1(@types/node@18.14.2)(typescript@4.9.5)
       tsconfig:
-        specifier: workspace:*
+        specifier: file:../../packages/tsconfig
         version: link:../../packages/tsconfig
       typescript:
         specifier: ^4.7.4
@@ -121,7 +127,7 @@ importers:
         specifier: ^3.1.3
         version: 3.3.0
       crypto-js:
-        specifier: workspace:*
+        specifier: file:../../packages/crypto-js
         version: link:../../packages/crypto-js
       react:
         specifier: ^18.2.0
@@ -146,13 +152,13 @@ importers:
         specifier: ^8.36.0
         version: 8.36.0
       eslint-config-custom:
-        specifier: workspace:*
-        version: link:../../packages/eslint-config-custom
+        specifier: file:../../packages/eslint-config-custom
+        version: file:packages/eslint-config-custom(turbo@1.8.8)(typescript@4.9.5)
       rollup-plugin-visualizer:
         specifier: ^5.7.1
         version: 5.9.0(rollup@2.79.1)
       tsconfig:
-        specifier: workspace:*
+        specifier: file:../../packages/tsconfig
         version: link:../../packages/tsconfig
       typescript:
         specifier: ^4.7.4
@@ -1089,6 +1095,10 @@ packages:
     resolution: {integrity: sha512-A2is4PLG+eeSfoTMA95/s4pvAoSo2mKtiM5jlHkAVewmiO8ISFTFKZjH7UAM1Atli/OT/7JHOrJRJiMKUZKYBw==}
     engines: {node: '>=12'}
 
+  dotenv@16.0.3:
+    resolution: {integrity: sha512-7GO6HghkA5fYG9TYnNxi14/7K9f5occMlp3zXAuSxn7CKCxt9xbNWG7yF8hTCSUchlfWSe3uLmlPfigevRItzQ==}
+    engines: {node: '>=12'}
+
   ee-first@1.1.1:
     resolution: {integrity: sha512-WMwm9LhRUo+WUaRN+vRuETqG89IgZphVSNkdFgeb6sS/E4OrDIN7t48CAewSHXc6C8lefD8KKfr5vY61brQlow==}
 
@@ -1272,6 +1282,9 @@ packages:
     engines: {node: '>=6.0'}
     hasBin: true
 
+  eslint-config-custom@file:packages/eslint-config-custom:
+    resolution: {directory: packages/eslint-config-custom, type: directory}
+
   eslint-config-prettier@8.6.0:
     resolution: {integrity: sha512-bAF0eLpLVqP5oEVUFKpMA+NnRFICwn9X8B5jrR9FcqnYBuPbqWEjTEspPWMj5ye6czoSLDweCzSo3Ko7gGrZaA==}
     hasBin: true
@@ -1286,6 +1299,12 @@ packages:
     peerDependencies:
       eslint: '>6.6.0'
 
+  eslint-config-turbo@2.8.21:
+    resolution: {integrity: sha512-JhZDxUYLPR9/rfWaMvYpjnEsxrPe3Nb5cu5CjazmxiygFpgV+RFBiW2DCeVfsvce85AjAdt4148MPAzu5WbmEA==}
+    peerDependencies:
+      eslint: '>6.6.0'
+      turbo: '>2.0.0'
+
   eslint-plugin-react@7.31.8:
     resolution: {integrity: sha512-5lBTZmgQmARLLSYiwI71tiGVTLUuqXantZM6vlSY39OaDSV0M7+32K5DnLkmFrwTe+Ksz0ffuLUC91RUviVZfw==}
     engines: {node: '>=4'}
@@ -1296,6 +1315,12 @@ packages:
     resolution: {integrity: sha512-fEsuSnYU3GLtT+s66mUuzDL1LaSieIx5uk3tPO0ToGv7hI2XzOfP24aPkQItTBGl7kq2JaVkRzPwcnfz8hkp0w==}
     peerDependencies:
       eslint: '>6.6.0'
+
+  eslint-plugin-turbo@2.8.21:
+    resolution: {integrity: sha512-GkbB1vfyq3TxQIavl391Jyyt5gz4XZBwejkcKbRj93gpla1TMjQePr5sUXQZJ9h5Okt361gFkoBV2Li8zytEGA==}
+    peerDependencies:
+      eslint: '>6.6.0'
+      turbo: '>2.0.0'
 
   eslint-scope@5.1.1:
     resolution: {integrity: sha512-2NxwbF/hZ0KpepYN0cNbo+FN6XoK7GaHlQhgx/hIZl6Va0bF45RQOOwhLIy8lQDbuCiadSLCBnH2CFYquit5bw==}
@@ -3611,6 +3636,8 @@ snapshots:
     dependencies:
       webidl-conversions: 7.0.0
 
+  dotenv@16.0.3: {}
+
   ee-first@1.1.1: {}
 
   electron-to-chromium@1.4.314: {}
@@ -3783,6 +3810,20 @@ snapshots:
     optionalDependencies:
       source-map: 0.6.1
 
+  eslint-config-custom@file:packages/eslint-config-custom(turbo@1.8.8)(typescript@4.9.5):
+    dependencies:
+      '@typescript-eslint/eslint-plugin': 5.55.0(@typescript-eslint/parser@5.55.0(eslint@8.36.0)(typescript@4.9.5))(eslint@8.36.0)(typescript@4.9.5)
+      '@typescript-eslint/parser': 5.55.0(eslint@8.36.0)(typescript@4.9.5)
+      eslint: 8.36.0
+      eslint-config-prettier: 8.6.0(eslint@8.36.0)
+      eslint-config-react: 1.1.7
+      eslint-config-turbo: 2.8.21(eslint@8.36.0)(turbo@1.8.8)
+      eslint-plugin-react: 7.31.8(eslint@8.36.0)
+    transitivePeerDependencies:
+      - supports-color
+      - turbo
+      - typescript
+
   eslint-config-prettier@8.6.0(eslint@8.36.0):
     dependencies:
       eslint: 8.36.0
@@ -3793,6 +3834,12 @@ snapshots:
     dependencies:
       eslint: 8.36.0
       eslint-plugin-turbo: 0.0.9(eslint@8.36.0)
+
+  eslint-config-turbo@2.8.21(eslint@8.36.0)(turbo@1.8.8):
+    dependencies:
+      eslint: 8.36.0
+      eslint-plugin-turbo: 2.8.21(eslint@8.36.0)(turbo@1.8.8)
+      turbo: 1.8.8
 
   eslint-plugin-react@7.31.8(eslint@8.36.0):
     dependencies:
@@ -3815,6 +3862,12 @@ snapshots:
   eslint-plugin-turbo@0.0.9(eslint@8.36.0):
     dependencies:
       eslint: 8.36.0
+
+  eslint-plugin-turbo@2.8.21(eslint@8.36.0)(turbo@1.8.8):
+    dependencies:
+      dotenv: 16.0.3
+      eslint: 8.36.0
+      turbo: 1.8.8
 
   eslint-scope@5.1.1:
     dependencies:
