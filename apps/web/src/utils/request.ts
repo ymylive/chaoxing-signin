@@ -9,23 +9,42 @@ type FetchParams = {
 };
 
 export const fetch: FetchType = (url, params = {}) => {
-  !params.type && (params.type = 'json');
-  !params.method && (params.method = 'GET');
-  !params.headers && (params.headers = {});
+  const requestParams = { ...params };
+  !requestParams.type && (requestParams.type = 'json');
+  !requestParams.method && (requestParams.method = 'GET');
+  !requestParams.headers && (requestParams.headers = {});
 
-  if (!params.headers['Content-Type'] && Object.prototype.toString.call(params.body) === '[object Object]') {
-    params.headers['Content-Type'] = 'application/json';
-    params.body = JSON.stringify(params.body);
+  if (
+    !requestParams.headers['Content-Type'] &&
+    Object.prototype.toString.call(requestParams.body) === '[object Object]'
+  ) {
+    requestParams.headers['Content-Type'] = 'application/json';
+    requestParams.body = JSON.stringify(requestParams.body);
   }
 
-  return new Promise((resolve) => {
-    globalThis.fetch(url, { ...params }).then(res => {
-      switch (res.headers.get('Content-Type')) {
-        case 'text/plain; charset=utf-8': return res.text();
-        case 'application/json; charset=utf-8': return res.json();
+  return new Promise((resolve, reject) => {
+    globalThis.fetch(url, { ...requestParams }).then(async (res) => {
+      const contentType = res.headers.get('Content-Type') || '';
+
+      if (requestParams.type === 'text') return res.text();
+      if (requestParams.type === 'json') {
+        if (contentType.includes('application/json')) return res.json();
+
+        const text = await res.text();
+        if (!text) return null;
+        try {
+          return JSON.parse(text);
+        } catch {
+          return text;
+        }
       }
+
+      if (contentType.includes('application/json')) return res.json();
+      return res.text();
     }).then(val => {
       resolve(val);
+    }).catch((error) => {
+      reject(error);
     });
   });
 };

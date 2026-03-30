@@ -4,7 +4,7 @@ declare module '@nuintun/qrcode';
 
 interface UserParamsType {
   phone: string;
-  password: string;
+  password?: string;
   name: string;
   fid: string;
   lv: string;
@@ -14,6 +14,7 @@ interface UserParamsType {
   _uid: string;
   date: Date;
   monitor: boolean;
+  monitorToken: string;
   config: UserConfig;
 }
 

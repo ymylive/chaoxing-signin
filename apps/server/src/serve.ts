@@ -18,8 +18,52 @@ const ENVJSON = getJsonObject('env.json');
 
 const app = new Koa();
 const router = new Router();
-const processMap = new Map<string, ChildProcess>();
+type MonitorProcess = {
+  process: ChildProcess;
+  token: string;
+  state: 'starting' | 'running';
+};
+
+const processMap = new Map<string, MonitorProcess>();
 const WEB_ROOT = path.resolve(__dirname, '../../web/dist');
+const MAX_UPLOAD_BYTES = 8 * 1024 * 1024;
+const START_TIMEOUT_MS = 10_000;
+const ALLOWED_LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '::1', '[::1]']);
+
+const isAllowedOrigin = (origin: string, host: string) => {
+  try {
+    const originUrl = new URL(origin);
+    const requestHost = host.split(':')[0];
+    return originUrl.hostname === requestHost || ALLOWED_LOCAL_HOSTS.has(originUrl.hostname);
+  } catch {
+    return false;
+  }
+};
+
+const getMonitorToken = (ctx: Koa.Context) => {
+  const tokenFromHeader = ctx.get('X-Monitor-Token');
+  if (tokenFromHeader) return tokenFromHeader;
+  if (typeof ctx.query.monitorToken === 'string') return ctx.query.monitorToken;
+  if (ctx.request.body && typeof (ctx.request.body as any).monitorToken === 'string') {
+    return (ctx.request.body as any).monitorToken;
+  }
+  return '';
+};
+
+const parseMonitorStartPayload = (rawBody: string) => {
+  try {
+    return JSON.parse(Buffer.from(rawBody, 'base64').toString('utf8'));
+  } catch {
+    return null;
+  }
+};
+
+const createUploadForm = () => {
+  return new multiparty.Form({
+    maxFilesSize: MAX_UPLOAD_BYTES,
+    maxFieldsSize: 64 * 1024,
+  });
+};
 
 // serve static web ui first
 app.use(async (ctx, next) => {
@@ -59,7 +103,6 @@ router.post('/login', async (ctx) => {
     return;
   }
   params.name = (await getAccountInfo(params)) || '获取失败';
-  console.log(ctx.request.body);
   ctx.body = params;
 });
 
@@ -91,7 +134,6 @@ router.post('/activity', async (ctx) => {
     _uid: uid,
     ...activity,
   });
-  console.log(uid);
   ctx.body = activity;
 });
 
@@ -111,7 +153,6 @@ router.post('/qrcode', async (ctx) => {
     address,
     altitude
   });
-  console.log(name, uid);
   if (res === 'success') {
     ctx.body = 'success';
     return;
@@ -134,7 +175,6 @@ router.post('/location', async (ctx) => {
     lon,
     fid,
   });
-  console.log(name, uid);
   if (res === 'success') {
     ctx.body = 'success';
     return;
@@ -154,7 +194,6 @@ router.post('/general', async (ctx) => {
     _uid: uid,
     fid,
   });
-  console.log(name, uid);
   if (res === 'success') {
     ctx.body = 'success';
     return;
@@ -175,46 +214,60 @@ router.post('/uvtoken', async (ctx) => {
 });
 
 router.post('/upload', async (ctx) => {
-  const form = new multiparty.Form();
+  const form = createUploadForm();
   const fields: any = {};
   const data: any[] = [];
 
-  const result = await new Promise((resolve) => {
-    // 解析到part时，判断是否为文件
-    form.on('part', (part: any) => {
-      if (part.filename !== undefined) {
-        // 存入data数组
-        part.on('data', (chunk: any) => {
-          data.push(chunk);
-        });
-        // 存完继续
-        part.on('close', () => {
-          part.resume();
-        });
-      }
-    });
-    // 解析遇到文本时
-    form.on('field', (name: string, str: string) => {
-      fields[name] = str;
-    });
-    // 解析完成后
-    form.on('close', async () => {
-      const buffer = Buffer.concat(data);
-      const res = await uploadPhoto({
-        uf: fields['uf'],
-        _d: fields['_d'],
-        _uid: fields['_uid'],
-        vc3: fields['vc3'],
-        token: ctx.query._token as string,
-        buffer,
+  try {
+    const result = await new Promise((resolve, reject) => {
+      form.on('error', reject);
+      // 解析到part时，判断是否为文件
+      form.on('part', (part: any) => {
+        if (part.filename !== undefined) {
+          // 存入data数组
+          part.on('data', (chunk: any) => {
+            data.push(chunk);
+          });
+          // 存完继续
+          part.on('close', () => {
+            part.resume();
+          });
+        }
       });
-      resolve(res);
-      // console.log(res);
+      // 解析遇到文本时
+      form.on('field', (name: string, str: string) => {
+        fields[name] = str;
+      });
+      // 解析完成后
+      form.on('close', async () => {
+        try {
+          const token = ctx.query._token as string | undefined;
+          if (!token) {
+            reject(new Error('Missing upload token'));
+            return;
+          }
+          const buffer = Buffer.concat(data);
+          const res = await uploadPhoto({
+            uf: fields['uf'],
+            _d: fields['_d'],
+            _uid: fields['_uid'],
+            vc3: fields['vc3'],
+            token,
+            buffer,
+          });
+          resolve(res);
+        } catch (error) {
+          reject(error);
+        }
+      });
+      // 解析请求表单
+      form.parse(ctx.req);
     });
-    // 解析请求表单
-    form.parse(ctx.req);
-  });
-  ctx.body = result;
+    ctx.body = result;
+  } catch (error: any) {
+    ctx.status = error?.message === 'Missing upload token' ? 400 : 413;
+    ctx.body = 'UploadFailed';
+  }
 });
 
 router.post('/photo', async (ctx) => {
@@ -229,7 +282,6 @@ router.post('/photo', async (ctx) => {
     fid,
     objectId,
   });
-  console.log(name, uid);
   if (res === 'success') {
     ctx.body = 'success';
     return;
@@ -239,53 +291,71 @@ router.post('/photo', async (ctx) => {
 });
 
 router.post('/qrocr', async (ctx) => {
-  const form = new multiparty.Form();
+  const form = createUploadForm();
   const data: any[] = [];
-  const result = await new Promise((resolve) => {
-    form.on('part', (part: any) => {
-      if (part.filename !== undefined) {
-        part.on('data', (chunk: any) => {
-          data.push(chunk);
-        });
-        part.on('close', () => {
-          part.resume();
-        });
-      }
+  try {
+    const result = await new Promise((resolve, reject) => {
+      form.on('error', reject);
+      form.on('part', (part: any) => {
+        if (part.filename !== undefined) {
+          part.on('data', (chunk: any) => {
+            data.push(chunk);
+          });
+          part.on('close', () => {
+            part.resume();
+          });
+        }
+      });
+      form.on('close', async () => {
+        const buffer = Buffer.concat(data);
+        const base64str = buffer.toString('base64');
+        let res: any;
+        try {
+          res = await QrCodeScan(base64str, 'base64');
+          const url = res.CodeResults[0].Url;
+          const enc_start = url.indexOf('enc=') + 4;
+          const result = url.substring(enc_start, url.indexOf('&', enc_start));
+          resolve(result);
+        } catch (error) {
+          resolve('识别失败');
+        }
+      });
+      form.parse(ctx.req);
     });
-    form.on('close', async () => {
-      const buffer = Buffer.concat(data);
-      const base64str = buffer.toString('base64');
-      let res: any;
-      try {
-        res = await QrCodeScan(base64str, 'base64');
-        const url = res.CodeResults[0].Url;
-        const enc_start = url.indexOf('enc=') + 4;
-        const result = url.substring(enc_start, url.indexOf('&', enc_start));
-        resolve(result);
-      } catch (error) {
-        resolve('识别失败');
-      }
-    });
-    form.parse(ctx.req);
-  });
-  ctx.body = result;
+    ctx.body = result;
+  } catch {
+    ctx.status = 413;
+    ctx.body = '识别失败';
+  }
 });
 
 // 200:监听中，201:未监听，202:登录失败
 router.get('/monitor/status/:phone', (ctx) => {
-  // 状态为正在监听
-  if (processMap.get(ctx.params.phone)) {
-    ctx.body = { code: 200, msg: 'Monitoring' };
-  } else {
+  const entry = processMap.get(ctx.params.phone);
+  if (!entry) {
     ctx.body = { code: 201, msg: 'Suspended' };
+    return;
   }
+  if (entry.token !== getMonitorToken(ctx)) {
+    ctx.status = 403;
+    ctx.body = { code: 403, msg: 'Forbidden' };
+    return;
+  }
+  ctx.body = entry.state === 'running'
+    ? { code: 200, msg: 'Monitoring' }
+    : { code: 201, msg: 'Starting' };
 });
 
 router.post('/monitor/stop/:phone', (ctx) => {
   const phone = ctx.params.phone;
-  const process_monitor = processMap.get(phone);
-  if (process_monitor !== undefined) {
-    process_monitor.kill('SIGKILL');
+  const monitorProcess = processMap.get(phone);
+  if (monitorProcess !== undefined) {
+    if (monitorProcess.token !== getMonitorToken(ctx)) {
+      ctx.status = 403;
+      ctx.body = { code: 403, msg: 'Forbidden' };
+      return;
+    }
+    monitorProcess.process.kill('SIGKILL');
     processMap.delete(phone);
   }
   ctx.body = { code: 201, msg: 'Suspended' };
@@ -293,49 +363,107 @@ router.post('/monitor/stop/:phone', (ctx) => {
 
 // base64字串需包含 credentials, monitor, mailing, cqserver 内容
 router.post('/monitor/start/:phone', async (ctx) => {
-  if (processMap.get(ctx.params.phone) !== undefined) {
+  const rawBody = (ctx.request as typeof ctx.request & { rawBody?: string }).rawBody || '';
+  const authConfig = typeof rawBody === 'string' ? parseMonitorStartPayload(rawBody) : null;
+  const monitorToken = authConfig?.monitorToken;
+  const existingMonitor = processMap.get(ctx.params.phone);
+  if (existingMonitor !== undefined) {
+    if (existingMonitor.token !== monitorToken) {
+      ctx.status = 403;
+      ctx.body = { code: 403, msg: 'Forbidden' };
+      return;
+    }
     ctx.body = { code: 200, msg: 'Already started' };
     return;
   }
+  if (!monitorToken) {
+    ctx.status = 400;
+    ctx.body = { code: 400, msg: 'Missing monitor token' };
+    return;
+  }
   const process_monitor = fork(process.argv[1].endsWith('ts') ? 'monitor.ts' : 'monitor.js',
-    ['--auth', ctx.params.phone, ctx.request.rawBody],
+    ['--auth', ctx.params.phone, rawBody],
     {
       cwd: __dirname,
       detached: false,
       stdio: [null, null, null, 'ipc'],
     }
   );
+  processMap.set(ctx.params.phone, {
+    process: process_monitor,
+    token: monitorToken,
+    state: 'starting',
+  });
   const response = await new Promise((resolve) => {
-    process_monitor.on('message', (msg) => {
+    const cleanup = (shouldDelete = false) => {
+      process_monitor.off('message', handleMessage);
+      process_monitor.off('error', handleError);
+      process_monitor.off('exit', handleExit);
+      clearTimeout(timeoutId);
+      if (shouldDelete) processMap.delete(ctx.params.phone);
+    };
+    const handleMessage = (msg: any) => {
       switch (msg) {
         case 'success': {
-          processMap.set(ctx.params.phone, process_monitor);
+          const existing = processMap.get(ctx.params.phone);
+          if (existing) existing.state = 'running';
+          cleanup();
           resolve({ code: 200, msg: 'Started Successfully' });
           break;
         }
         case 'authfail': {
+          cleanup(true);
           resolve({ code: 202, msg: 'Authencation Failed' });
           break;
         }
         case 'notconfigured': {
+          cleanup(true);
           resolve({ code: 203, msg: 'Not Configured' });
           break;
         }
       }
-    });
+    };
+    const handleError = () => {
+      cleanup(true);
+      resolve({ code: 500, msg: 'Monitor Start Failed' });
+    };
+    const handleExit = () => {
+      cleanup(true);
+      resolve({ code: 500, msg: 'Monitor Start Failed' });
+    };
+    const timeoutId = setTimeout(() => {
+      process_monitor.kill('SIGKILL');
+      cleanup(true);
+      resolve({ code: 504, msg: 'Monitor Start Timeout' });
+    }, START_TIMEOUT_MS);
+
+    process_monitor.on('message', handleMessage);
+    process_monitor.once('error', handleError);
+    process_monitor.once('exit', handleExit);
   });
   ctx.body = response;
 });
 
 app.use(bodyparser({ enableTypes: ['json', 'form', 'text'] }));
 app.use(async (ctx, next) => {
-  await next();
-  ctx.set('Access-Control-Allow-Origin', '*');
-  ctx.set('Access-Control-Allow-Headers', 'Content-Type');
+  const origin = ctx.get('Origin');
+  if (origin) {
+    if (!isAllowedOrigin(origin, ctx.host)) {
+      ctx.status = 403;
+      ctx.body = { code: 403, msg: 'Forbidden Origin' };
+      return;
+    }
+    ctx.set('Access-Control-Allow-Origin', origin);
+    ctx.set('Vary', 'Origin');
+    ctx.set('Access-Control-Allow-Headers', 'Content-Type, X-Monitor-Token');
+    ctx.set('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+  }
   if (ctx.method === 'OPTIONS') {
     ctx.set('Access-Control-Max-Age', '300');
-    ctx.body = '';
+    ctx.status = 204;
+    return;
   }
+  await next();
 });
 app.use(router.routes());
 
@@ -354,8 +482,8 @@ app.use(async (ctx, next) => {
 
 // Ctrl + C 终止程序
 process.on('SIGINT', () => {
-  processMap.forEach((pcs) => {
-    pcs.kill('SIGINT');
+  processMap.forEach((monitorProcess) => {
+    monitorProcess.process.kill('SIGINT');
   });
   process.exit();
 });

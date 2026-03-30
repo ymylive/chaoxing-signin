@@ -104,13 +104,13 @@ function UserCard(props: UserCardProps) {
         phone: target.phone,
         fid: target.fid,
         vc3: target.vc3,
-        password: target.password,
         _uid: target._uid,
         _d: target._d,
         uf: target.uf,
         name: target.name,
         date: new Date(),
         monitor: value,
+        monitorToken: target.monitorToken,
         lv: target.lv,
         config: { ...target.config }
       });
@@ -136,23 +136,37 @@ function UserCard(props: UserCardProps) {
           lv: props.user.lv,
           fid: props.user.fid
         },
+        monitorToken: props.user.monitorToken,
         config: { ...props.user.config }
       });
       reqData = enc.Utf8.parse(payload).toString(enc.Base64);
     }
 
-    const result = await Fetch(`${reqAPI}/${props.user.phone}`, { method: 'POST', body: reqData });
-    switch (result.code) {
-      case 200: {
-        setMonitorState(props.user, true); break;
+    try {
+      const result = await Fetch(`${reqAPI}/${props.user.phone}`, {
+        method: 'POST',
+        body: props.user.monitor ? { monitorToken: props.user.monitorToken } : reqData
+      });
+      switch (result.code) {
+        case 200: {
+          setMonitorState(props.user, true); break;
+        }
+        case 201: {
+          setMonitorState(props.user, false); break;
+        }
+        case 202: {
+          setMonitorState(props.user, false);
+          props.setAlert({ open: true, message: '身份过期' });
+          break;
+        }
+        case 403: {
+          setMonitorState(props.user, false);
+          props.setAlert({ open: true, message: '监听令牌无效，请重新登录' });
+          break;
+        }
       }
-      case 201: {
-        setMonitorState(props.user, false); break;
-      }
-      case 202: {
-        setMonitorState(props.user, false);
-        props.setAlert({ open: true, message: '身份过期' });
-      }
+    } catch {
+      props.setAlert({ open: true, message: '监听状态更新失败' });
     }
     setLoading(false);
   };

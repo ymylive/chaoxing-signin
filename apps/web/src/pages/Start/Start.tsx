@@ -10,6 +10,7 @@ import UserCard from '../../components/UserCard/UserCard';
 import { login_api, monitor_status_api } from '../../config/api';
 import styles from './Start.module.css';
 import { RenderConfig, RenderLogin } from './ConfigDialog';
+import { createMonitorToken, normalizeStoredUser } from '../../utils/user';
 
 type UserListType = UserParamsType[];
 
@@ -54,41 +55,44 @@ function Start() {
   const [current, setCurrent] = useState<UserParamsType>();
 
   const login = async (phone: string, password: string) => {
-
-    const user = await Fetch(login_api, {
-      method: 'POST',
-      body: {
-        phone: phone,
-        password: password
+    try {
+      const user = await Fetch(login_api, {
+        method: 'POST',
+        body: {
+          phone: phone,
+          password: password
+        }
+      });
+      // 登陆成功
+      if (user !== 'AuthFailed') {
+        setOpen(false);
+        // 写入数据库
+        const request = indb!.transaction(['user'], 'readwrite')
+          .objectStore('user')
+          .put({
+            phone,
+            name: user.name, // 姓名
+            _uid: user._uid,
+            uf: user.uf,
+            vc3: user.vc3,
+            _d: user._d,
+            fid: user.fid,
+            lv: user.lv,
+            date: new Date(), // 判断时间进行重新认证身份
+            monitor: false, // 监听启用状态
+            monitorToken: createMonitorToken(),
+            config: defaultConfig // 默认配置
+          });
+        request.onerror = () => { console.log('用户写入失败'); };
+        request.onsuccess = () => {
+          console.log('用户写入成功');
+          window.location.reload();
+        };
       }
-    });
-    // 登陆成功
-    if (user !== 'AuthFailed') {
-      setOpen(false);
-      // 写入数据库
-      const request = indb!.transaction(['user'], 'readwrite')
-        .objectStore('user')
-        .put({
-          phone,
-          password,
-          name: user.name, // 姓名
-          _uid: user._uid,
-          uf: user.uf,
-          vc3: user.vc3,
-          _d: user._d,
-          fid: user.fid,
-          lv: user.lv,
-          date: new Date(), // 判断时间进行重新认证身份
-          monitor: false, // 监听启用状态
-          config: defaultConfig // 默认配置
-        });
-      request.onerror = () => { console.log('用户写入失败'); };
-      request.onsuccess = () => {
-        console.log('用户写入成功');
-        window.location.reload();
-      };
-    }
-    else {
+      else {
+        setAlert({ open: true, message: '登陆失败' });
+      }
+    } catch {
       setAlert({ open: true, message: '登陆失败' });
     }
   };
@@ -109,7 +113,6 @@ function Start() {
       .objectStore('user')
       .put({
         phone: target.phone,
-        password: target.password,
         name: target.name,
         _uid: target._uid,
         uf: target.uf,
@@ -119,6 +122,7 @@ function Start() {
         lv: target.lv,
         date: target.date,
         monitor: target.monitor,
+        monitorToken: target.monitorToken,
         config
       });
     request.onerror = () => { console.log('配置写入失败'); };
@@ -156,7 +160,10 @@ function Start() {
         if (cursor) {
           // console.log(cursor.key)
           // console.log(cursor.value)
-          const userValue = cursor.value; // 在safari中需要将参数值存到变量，再传给setState不然undefined
+          const userValue = normalizeStoredUser(cursor.value); // 在safari中需要将参数值存到变量，再传给setState不然undefined
+          if (!cursor.value.monitorToken || cursor.value.password !== undefined) {
+            cursor.update(userValue);
+          }
           setUser((prev) => {
             return [...prev, userValue];
           });
@@ -169,7 +176,7 @@ function Start() {
     // 是否创建数据表
     request.onupgradeneeded = () => {
       const db = request.result;
-      if (!db.objectStoreNames.contains('ui')) {
+      if (!db.objectStoreNames.contains('user')) {
         db.createObjectStore('user', { keyPath: 'phone' });
         console.log('数据表已创建');
       }
@@ -182,7 +189,7 @@ function Start() {
       const monitorStatus: boolean[] = [];
       const tasks: any[] = [];
       for (let i = 0; i < user.length; i++) {
-        tasks.push(Fetch(`${monitor_status_api}/${user[i].phone}`));
+        tasks.push(Fetch(`${monitor_status_api}/${user[i].phone}?monitorToken=${encodeURIComponent(user[i].monitorToken)}`));
       }
       // Promise.all 请求所有用户的 monitor 状态，全部完成后得到状态数组 res
       Promise.all(tasks).then((res) => {
@@ -196,6 +203,10 @@ function Start() {
             return { ...user, monitor: monitorStatus[index] };
           });
         });
+      }).catch(() => {
+        setUser(prev => prev.map(user => {
+          return { ...user, monitor: false };
+        }));
       });
     }
   }, [loaded]);

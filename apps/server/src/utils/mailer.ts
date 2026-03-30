@@ -1,6 +1,15 @@
 import nodemailer from 'nodemailer';
 import { request } from './request';
 
+const escapeHtml = (value: string | null) => {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+};
+
 export function sendEmail(args: { aid: string; uid: string; realname: string; status: string | null; mailing: MailConfig; }) {
   const { uid, realname, aid, status, mailing } = args;
   const transporter = nodemailer.createTransport({
@@ -17,7 +26,7 @@ export function sendEmail(args: { aid: string; uid: string; realname: string; st
       from: `"CLI" <${mailing.user}>`,
       to: mailing.to,
       subject: '服务器签到反馈',
-      html: `<table border="1"><thead><th>aid</th><th>uid</th><th>name</th><th>status</th></thead><tbody><td>${aid}</td><td>${uid}</td><td>${realname}</td><td>${status}</td></tbody></table>`,
+      html: `<table border="1"><thead><th>aid</th><th>uid</th><th>name</th><th>status</th></thead><tbody><td>${escapeHtml(aid)}</td><td>${escapeHtml(uid)}</td><td>${escapeHtml(realname)}</td><td>${escapeHtml(status)}</td></tbody></table>`,
     },
     () => {
       transporter.close();
@@ -35,7 +44,7 @@ interface PushPlusType {
 
 export const pushplusSend = (args: PushPlusType) => {
   return request(
-    'http://www.pushplus.plus/send',
+    'https://www.pushplus.plus/send',
     {
       method: 'POST',
       headers: {

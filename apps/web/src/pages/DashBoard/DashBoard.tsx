@@ -10,6 +10,7 @@ import { useParams } from 'react-router-dom';
 import { activity_api, login_api } from '../../config/api';
 import './DashBoard.css';
 import { generalSign, getuvToken, locationSign, parseEnc, photoSign, qrcodeSign, showResultWithTransition, uploadFile } from './Helper';
+import { normalizeStoredUser } from '../../utils/user';
 
 interface SignInfo {
   activity: Activity;
@@ -181,40 +182,59 @@ function DashBoard() {
         .get(params.phone as string);
       request_IDBGET.onsuccess = async () => {
         // 数据读取成功
-        setUserParams(request_IDBGET.result);
+        const rawStoredUser = request_IDBGET.result as (UserParamsType & { password?: string; }) | undefined;
+        const storedUser = rawStoredUser ? normalizeStoredUser(rawStoredUser) : undefined;
+        if (!storedUser) {
+          setAlert({ msg: '用户不存在，请重新登录', show: true, severity: 'error' });
+          return;
+        }
+        if (rawStoredUser && (!rawStoredUser.monitorToken || rawStoredUser.password !== undefined)) {
+          db.transaction('user', 'readwrite')
+            .objectStore('user')
+            .put(storedUser);
+        }
+        setUserParams(storedUser);
         // 身份过期自动重新登陆
-        if (Date.now() - request_IDBGET.result.date > 432000000) {
-          const user = await Fetch(login_api, {
-            method: 'POST',
-            body: {
-              phone: request_IDBGET.result.phone,
-              password: request_IDBGET.result.password
-            }
-          });
-          if (user === 'AuthFailed') {
-            setAlert({ msg: '重新登录失败', show: true, severity: 'error' });
-          } else {
-            const userParam: UserParamsType = {
-              phone: request_IDBGET.result.phone,
-              fid: user.fid,
-              vc3: user.vc3,
-              password: request_IDBGET.result.password,
-              _uid: user._uid,
-              _d: user._d,
-              uf: user.uf,
-              name: user.name,
-              date: new Date(),
-              lv: user.lv,
-              monitor: false,
-              config: user.config
-            };
-            setUserParams(userParam);
-            // 登陆成功将新信息写入数据库
-            db.transaction('user', 'readwrite')
-              .objectStore('user').put(userParam)
-              .onsuccess = () => {
-                setAlert({ msg: '凭证已自动更新', show: true, severity: 'success' });
+        if (Date.now() - new Date(storedUser.date).getTime() > 432000000) {
+          if (!storedUser.password) {
+            setAlert({ msg: '凭证已过期，请重新登录', show: true, severity: 'warning' });
+            return;
+          }
+          try {
+            const user = await Fetch(login_api, {
+              method: 'POST',
+              body: {
+                phone: storedUser.phone,
+                password: storedUser.password
+              }
+            });
+            if (user === 'AuthFailed') {
+              setAlert({ msg: '重新登录失败', show: true, severity: 'error' });
+            } else {
+              const userParam: UserParamsType = {
+                phone: storedUser.phone,
+                fid: user.fid,
+                vc3: user.vc3,
+                _uid: user._uid,
+                _d: user._d,
+                uf: user.uf,
+                name: user.name,
+                date: new Date(),
+                lv: user.lv,
+                monitor: storedUser.monitor,
+                monitorToken: storedUser.monitorToken,
+                config: storedUser.config
               };
+              setUserParams(userParam);
+              // 登陆成功将新信息写入数据库
+              db.transaction('user', 'readwrite')
+                .objectStore('user').put(userParam)
+                .onsuccess = () => {
+                  setAlert({ msg: '凭证已自动更新', show: true, severity: 'success' });
+                };
+            }
+          } catch {
+            setAlert({ msg: '重新登录失败', show: true, severity: 'error' });
           }
         }
       };
