@@ -28,7 +28,7 @@
 
 ## 快速开始 🚀
 
-### Windows 用户（推荐）
+### Windows 用户
 
 1. 下载 Release 中的 `Chaoxing.exe`
 2. 双击运行，首次会自动初始化
@@ -37,6 +37,29 @@
 或使用批处理脚本：
 - `START.bat` - 普通启动
 - `START-ADMIN.bat` - 管理员权限启动（推荐）
+
+### macOS 用户
+
+**推荐方式：使用 DMG**
+1. 下载 `超星学习通签到.dmg`（支持 Intel 和 Apple Silicon）
+2. 双击打开，拖动到"应用程序"文件夹
+3. 右键点击应用选择"打开"
+
+**命令行方式：**
+```bash
+# 下载对应版本（Universal/arm64/x64）
+chmod +x Chaoxing-macos
+xattr -cr Chaoxing-macos
+./Chaoxing-macos
+```
+
+**遇到安全警告？** 查看 [macOS安全警告解决方案.md](./macOS安全警告解决方案.md)
+
+### Android 用户
+
+1. 下载 `chaoxing-signin.apk`
+2. 允许安装未知来源应用
+3. 安装并打开应用
 
 ### 从源码运行
 
