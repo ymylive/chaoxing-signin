@@ -94,31 +94,36 @@ jobs:
           echo "Creating shell wrappers..."
 
           # Universal wrapper
-          cat > dist/Chaoxing-macos << 'EOF'
-#!/bin/bash
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-exec "$SCRIPT_DIR/chaoxing-macos.bin" "$@"
-EOF
+          printf '%s\n' \
+            '#!/bin/bash' \
+            'SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"' \
+            'exec "$SCRIPT_DIR/chaoxing-macos.bin" "$@"' \
+            > dist/Chaoxing-macos
 
           # Intel wrapper
-          cat > dist/Chaoxing-macos-x64 << 'EOF'
-#!/bin/bash
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-exec "$SCRIPT_DIR/chaoxing-macos-x64.bin" "$@"
-EOF
+          printf '%s\n' \
+            '#!/bin/bash' \
+            'SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"' \
+            'exec "$SCRIPT_DIR/chaoxing-macos-x64.bin" "$@"' \
+            > dist/Chaoxing-macos-x64
 
           # ARM wrapper
-          cat > dist/Chaoxing-macos-arm64 << 'EOF'
-#!/bin/bash
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-exec "$SCRIPT_DIR/chaoxing-macos-arm64.bin" "$@"
-EOF
+          printf '%s\n' \
+            '#!/bin/bash' \
+            'SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"' \
+            'exec "$SCRIPT_DIR/chaoxing-macos-arm64.bin" "$@"' \
+            > dist/Chaoxing-macos-arm64
 
           # Make everything executable
           chmod +x dist/*.bin dist/Chaoxing-macos*
 
           # Remove extended attributes
           xattr -cr dist/*.bin dist/Chaoxing-macos* || true
+
+          # Package self-contained CLI archives for GitHub Releases
+          tar -czf dist/Chaoxing-macos.tar.gz -C dist Chaoxing-macos chaoxing-macos.bin
+          tar -czf dist/Chaoxing-macos-x64.tar.gz -C dist Chaoxing-macos-x64 chaoxing-macos-x64.bin
+          tar -czf dist/Chaoxing-macos-arm64.tar.gz -C dist Chaoxing-macos-arm64 chaoxing-macos-arm64.bin
 
           # Verify Universal Binary
           echo "Verifying Universal Binary..."
@@ -138,31 +143,25 @@ EOF
         uses: actions/upload-artifact@v4
         with:
           name: macos-universal-app
-          path: dist/超星学习通签到.dmg
+          path: dist/Chaoxing-macos.dmg
 
       - name: Upload macOS Universal Binary
         uses: actions/upload-artifact@v4
         with:
           name: macos-universal-binary
-          path: |
-            dist/Chaoxing-macos
-            dist/chaoxing-macos.bin
+          path: dist/Chaoxing-macos.tar.gz
 
       - name: Upload macOS Intel Binary
         uses: actions/upload-artifact@v4
         with:
           name: macos-intel-binary
-          path: |
-            dist/Chaoxing-macos-x64
-            dist/chaoxing-macos-x64.bin
+          path: dist/Chaoxing-macos-x64.tar.gz
 
       - name: Upload macOS ARM Binary
         uses: actions/upload-artifact@v4
         with:
           name: macos-arm-binary
-          path: |
-            dist/Chaoxing-macos-arm64
-            dist/chaoxing-macos-arm64.bin
+          path: dist/Chaoxing-macos-arm64.tar.gz
 
   build-android:
     name: Build Android
@@ -248,10 +247,10 @@ EOF
         with:
           files: |
             ./artifacts/windows-exe/Chaoxing.exe
-            ./artifacts/macos-universal-app/*.dmg
-            ./artifacts/macos-universal-binary/Chaoxing-macos
-            ./artifacts/macos-intel-binary/Chaoxing-macos-x64
-            ./artifacts/macos-arm-binary/Chaoxing-macos-arm64
+            ./artifacts/macos-universal-app/Chaoxing-macos.dmg
+            ./artifacts/macos-universal-binary/Chaoxing-macos.tar.gz
+            ./artifacts/macos-intel-binary/Chaoxing-macos-x64.tar.gz
+            ./artifacts/macos-arm-binary/Chaoxing-macos-arm64.tar.gz
             ./artifacts/android-apk/*.apk
           draft: false
           prerelease: false
@@ -268,15 +267,15 @@ EOF
             #### macOS 用户
 
             **推荐下载：**
-            - **超星学习通签到.dmg** - Universal Binary（同时支持Intel和Apple Silicon）
+            - **Chaoxing-macos.dmg** - Universal App（同时支持Intel和Apple Silicon）
               1. 双击打开 DMG 文件
               2. 将应用拖到"应用程序"文件夹
               3. 首次运行时，右键点击应用选择"打开"
 
             **命令行版本：**
-            - **Chaoxing-macos** - Universal Binary（推荐，支持所有Mac）
-            - **Chaoxing-macos-x64** - 仅Intel芯片
-            - **Chaoxing-macos-arm64** - 仅Apple Silicon (M1/M2/M3)
+            - **Chaoxing-macos.tar.gz** - Universal CLI（推荐，支持所有Mac）
+            - **Chaoxing-macos-x64.tar.gz** - 仅Intel芯片
+            - **Chaoxing-macos-arm64.tar.gz** - 仅Apple Silicon (M1/M2/M3)
 
             **如何选择：**
             - 不确定？下载 Universal Binary 版本
@@ -285,7 +284,8 @@ EOF
 
             **安装步骤：**
             ```bash
-            # 下载后
+            # 下载并解压后
+            tar -xzf Chaoxing-macos.tar.gz
             chmod +x Chaoxing-macos
             xattr -cr Chaoxing-macos
             ./Chaoxing-macos

@@ -7,6 +7,7 @@ APP_NAME="超星学习通签到"
 BUNDLE_ID="com.chaoxing.signin"
 VERSION="4.3.7"
 EXECUTABLE_NAME="Chaoxing"
+DMG_NAME="Chaoxing-macos.dmg"
 
 # 创建应用包结构
 APP_DIR="dist/${APP_NAME}.app"
@@ -22,6 +23,8 @@ mkdir -p "${RESOURCES_DIR}"
 echo "复制可执行文件..."
 cp "dist/Chaoxing-macos" "${MACOS_DIR}/${EXECUTABLE_NAME}"
 chmod +x "${MACOS_DIR}/${EXECUTABLE_NAME}"
+cp "dist/chaoxing-macos.bin" "${MACOS_DIR}/chaoxing-macos.bin"
+chmod +x "${MACOS_DIR}/chaoxing-macos.bin"
 
 # 创建 Info.plist
 echo "创建 Info.plist..."
@@ -100,6 +103,6 @@ fi
 
 # 创建 DMG
 echo "创建 DMG 镜像..."
-hdiutil create -volname "${APP_NAME}" -srcfolder "${APP_DIR}" -ov -format UDZO "dist/${APP_NAME}.dmg"
+hdiutil create -volname "${APP_NAME}" -srcfolder "${APP_DIR}" -ov -format UDZO "dist/${DMG_NAME}"
 
-echo "✓ DMG 创建完成: dist/${APP_NAME}.dmg"
+echo "✓ DMG 创建完成: dist/${DMG_NAME}"
