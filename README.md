@@ -56,31 +56,26 @@
 **方式一：使用 DMG（推荐）**
 1. 下载 `超星学习通签到.dmg`（Universal Binary，支持 Intel 和 Apple Silicon）
 2. 双击打开，拖动到"应用程序"文件夹
-3. 右键点击应用选择"打开"
+3. 右键点击应用选择"打开"（首次运行）
 
-**方式二：使用命令行**
-```bash
-# 下载对应版本
-# - Chaoxing-macos (Universal Binary，推荐)
-# - Chaoxing-macos-arm64 (Apple Silicon: M1/M2/M3)
-# - Chaoxing-macos-x64 (Intel)
+**方式二：使用启动脚本（最简单）**
+1. 下载对应版本的可执行文件
+2. 双击 `start-macos.sh` 启动脚本
+3. 完成！脚本会自动处理权限问题
 
-chmod +x Chaoxing-macos
-xattr -cr Chaoxing-macos
-./Chaoxing-macos
-```
+**方式三：右键打开**
+1. 下载可执行文件
+2. 右键点击文件，选择"打开"
+3. 在对话框中再次点击"打开"
 
-**方式三：使用自动化脚本**
-```bash
-# 下载并运行修复脚本
-curl -O https://raw.githubusercontent.com/ymylive/chaoxing-signin/main/scripts/fix-macos-security.sh
-chmod +x fix-macos-security.sh
-./fix-macos-security.sh
-```
+**版本选择：**
+- `Chaoxing-macos` - Universal Binary（推荐，支持所有Mac）
+- `Chaoxing-macos-arm64` - Apple Silicon (M1/M2/M3)
+- `Chaoxing-macos-x64` - Intel
 
 **⚠️ 遇到安全警告？**
-- 查看 [macOS安全警告解决方案.md](./macOS安全警告解决方案.md)
-- 查看 [macOS安装指南.md](./macOS安装指南.md)
+- 右键点击文件选择"打开"即可
+- 或查看 [macOS安全警告解决方案.md](./macOS安全警告解决方案.md)
 
 ### 🤖 Android 用户
 

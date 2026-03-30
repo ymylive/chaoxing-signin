@@ -90,12 +90,17 @@ jobs:
           echo "Creating Universal Binary..."
           lipo -create dist/Chaoxing-macos-x64 dist/Chaoxing-macos-arm64 -output dist/Chaoxing-macos
 
-          # Make executable
+          # Make executable and remove quarantine attributes
+          echo "Setting permissions and removing quarantine..."
           chmod +x dist/Chaoxing-macos dist/Chaoxing-macos-x64 dist/Chaoxing-macos-arm64
+
+          # Remove extended attributes that might cause issues
+          xattr -cr dist/Chaoxing-macos dist/Chaoxing-macos-x64 dist/Chaoxing-macos-arm64 || true
 
           # Verify Universal Binary
           echo "Verifying Universal Binary..."
           lipo -info dist/Chaoxing-macos
+          ls -lh dist/
 
       - name: Create macOS App Bundle
         run: |
@@ -116,19 +121,25 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: macos-universal-binary
-          path: dist/Chaoxing-macos
+          path: |
+            dist/Chaoxing-macos
+            start-macos.sh
 
       - name: Upload macOS Intel Binary
         uses: actions/upload-artifact@v4
         with:
           name: macos-intel-binary
-          path: dist/Chaoxing-macos-x64
+          path: |
+            dist/Chaoxing-macos-x64
+            start-macos.sh
 
       - name: Upload macOS ARM Binary
         uses: actions/upload-artifact@v4
         with:
           name: macos-arm-binary
-          path: dist/Chaoxing-macos-arm64
+          path: |
+            dist/Chaoxing-macos-arm64
+            start-macos.sh
 
   build-android:
     name: Build Android
@@ -216,6 +227,7 @@ jobs:
             ./artifacts/windows-exe/Chaoxing.exe
             ./artifacts/macos-universal-app/*.dmg
             ./artifacts/macos-universal-binary/Chaoxing-macos
+            ./artifacts/macos-universal-binary/start-macos.sh
             ./artifacts/macos-intel-binary/Chaoxing-macos-x64
             ./artifacts/macos-arm-binary/Chaoxing-macos-arm64
             ./artifacts/android-apk/*.apk
