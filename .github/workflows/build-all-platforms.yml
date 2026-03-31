@@ -34,18 +34,7 @@ jobs:
       - name: Build Windows EXE
         run: |
           mkdir -p dist
-          pnpm dlx pkg@5.8.1 -t node18-win-x64 -o dist/Chaoxing.exe . \
-            --assets "package.json" \
-            --assets "pnpm-lock.yaml" \
-            --assets "pnpm-workspace.yaml" \
-            --assets "turbo.json" \
-            --assets "apps/server/build/**/*" \
-            --assets "apps/web/dist/**/*" \
-            --assets "apps/server/node_modules/**/*" \
-            --assets "apps/server/src/configs/**/*" \
-            --assets "apps/server/src/env.json" \
-            --assets "packages/**/*" \
-            --assets "node_modules/.pnpm/**/*"
+          pnpm dlx pkg@5.8.1 -t node18-win-x64 -o dist/Chaoxing.exe .
 
       - name: Upload Windows artifact
         uses: actions/upload-artifact@v4
@@ -83,33 +72,11 @@ jobs:
 
           # Build for Intel (x64)
           echo "Building for Intel (x64)..."
-          pnpm dlx pkg@5.8.1 -t node18-macos-x64 -o dist/chaoxing-macos-x64.bin . \
-            --assets "package.json" \
-            --assets "pnpm-lock.yaml" \
-            --assets "pnpm-workspace.yaml" \
-            --assets "turbo.json" \
-            --assets "apps/server/build/**/*" \
-            --assets "apps/web/dist/**/*" \
-            --assets "apps/server/node_modules/**/*" \
-            --assets "apps/server/src/configs/**/*" \
-            --assets "apps/server/src/env.json" \
-            --assets "packages/**/*" \
-            --assets "node_modules/.pnpm/**/*"
+          pnpm dlx pkg@5.8.1 -t node18-macos-x64 -o dist/chaoxing-macos-x64.bin .
 
           # Build for Apple Silicon (arm64)
           echo "Building for Apple Silicon (arm64)..."
-          pnpm dlx pkg@5.8.1 -t node18-macos-arm64 -o dist/chaoxing-macos-arm64.bin . \
-            --assets "package.json" \
-            --assets "pnpm-lock.yaml" \
-            --assets "pnpm-workspace.yaml" \
-            --assets "turbo.json" \
-            --assets "apps/server/build/**/*" \
-            --assets "apps/web/dist/**/*" \
-            --assets "apps/server/node_modules/**/*" \
-            --assets "apps/server/src/configs/**/*" \
-            --assets "apps/server/src/env.json" \
-            --assets "packages/**/*" \
-            --assets "node_modules/.pnpm/**/*"
+          pnpm dlx pkg@5.8.1 -t node18-macos-arm64 -o dist/chaoxing-macos-arm64.bin .
 
           # Create shell wrappers
           echo "Creating shell wrappers..."
