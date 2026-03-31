@@ -34,7 +34,18 @@ jobs:
       - name: Build Windows EXE
         run: |
           mkdir -p dist
-          pnpm dlx pkg@5.8.1 -t node18-win-x64 -o dist/Chaoxing.exe . --assets "apps/server/build/**/*" --assets "apps/web/dist/**/*" --assets "apps/server/src/configs/**/*" --assets "apps/server/src/env.json"
+          pnpm dlx pkg@5.8.1 -t node18-win-x64 -o dist/Chaoxing.exe . \
+            --assets "package.json" \
+            --assets "pnpm-lock.yaml" \
+            --assets "pnpm-workspace.yaml" \
+            --assets "turbo.json" \
+            --assets "apps/server/build/**/*" \
+            --assets "apps/web/dist/**/*" \
+            --assets "apps/server/node_modules/**/*" \
+            --assets "apps/server/src/configs/**/*" \
+            --assets "apps/server/src/env.json" \
+            --assets "packages/**/*" \
+            --assets "node_modules/.pnpm/**/*"
 
       - name: Upload Windows artifact
         uses: actions/upload-artifact@v4
@@ -73,22 +84,32 @@ jobs:
           # Build for Intel (x64)
           echo "Building for Intel (x64)..."
           pnpm dlx pkg@5.8.1 -t node18-macos-x64 -o dist/chaoxing-macos-x64.bin . \
+            --assets "package.json" \
+            --assets "pnpm-lock.yaml" \
+            --assets "pnpm-workspace.yaml" \
+            --assets "turbo.json" \
             --assets "apps/server/build/**/*" \
             --assets "apps/web/dist/**/*" \
+            --assets "apps/server/node_modules/**/*" \
             --assets "apps/server/src/configs/**/*" \
-            --assets "apps/server/src/env.json"
+            --assets "apps/server/src/env.json" \
+            --assets "packages/**/*" \
+            --assets "node_modules/.pnpm/**/*"
 
           # Build for Apple Silicon (arm64)
           echo "Building for Apple Silicon (arm64)..."
           pnpm dlx pkg@5.8.1 -t node18-macos-arm64 -o dist/chaoxing-macos-arm64.bin . \
+            --assets "package.json" \
+            --assets "pnpm-lock.yaml" \
+            --assets "pnpm-workspace.yaml" \
+            --assets "turbo.json" \
             --assets "apps/server/build/**/*" \
             --assets "apps/web/dist/**/*" \
+            --assets "apps/server/node_modules/**/*" \
             --assets "apps/server/src/configs/**/*" \
-            --assets "apps/server/src/env.json"
-
-          # Create Universal Binary
-          echo "Creating Universal Binary..."
-          lipo -create dist/chaoxing-macos-x64.bin dist/chaoxing-macos-arm64.bin -output dist/chaoxing-macos.bin
+            --assets "apps/server/src/env.json" \
+            --assets "packages/**/*" \
+            --assets "node_modules/.pnpm/**/*"
 
           # Create shell wrappers
           echo "Creating shell wrappers..."
@@ -97,7 +118,11 @@ jobs:
           printf '%s\n' \
             '#!/bin/bash' \
             'SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"' \
-            'exec "$SCRIPT_DIR/chaoxing-macos.bin" "$@"' \
+            'ARCH="$(uname -m)"' \
+            'if [ "$ARCH" = "arm64" ]; then' \
+            '  exec "$SCRIPT_DIR/chaoxing-macos-arm64.bin" "$@"' \
+            'fi' \
+            'exec "$SCRIPT_DIR/chaoxing-macos-x64.bin" "$@"' \
             > dist/Chaoxing-macos
 
           # Intel wrapper
@@ -121,13 +146,10 @@ jobs:
           xattr -cr dist/*.bin dist/Chaoxing-macos* || true
 
           # Package self-contained CLI archives for GitHub Releases
-          tar -czf dist/Chaoxing-macos.tar.gz -C dist Chaoxing-macos chaoxing-macos.bin
+          tar -czf dist/Chaoxing-macos.tar.gz -C dist Chaoxing-macos chaoxing-macos-arm64.bin chaoxing-macos-x64.bin
           tar -czf dist/Chaoxing-macos-x64.tar.gz -C dist Chaoxing-macos-x64 chaoxing-macos-x64.bin
           tar -czf dist/Chaoxing-macos-arm64.tar.gz -C dist Chaoxing-macos-arm64 chaoxing-macos-arm64.bin
 
-          # Verify Universal Binary
-          echo "Verifying Universal Binary..."
-          lipo -info dist/chaoxing-macos.bin
           ls -lh dist/
 
       - name: Create macOS App Bundle

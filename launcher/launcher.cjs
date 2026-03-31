@@ -4,6 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const { spawn } = require('child_process');
 const os = require('os');
+const { getServerCommand, resolveLaunchContext } = require('./runtime.cjs');
 
 // Parse command line arguments
 const args = process.argv.slice(2);
@@ -16,36 +17,25 @@ const syncUI = args.includes('--sync');
 const isPackaged = typeof process.pkg !== 'undefined';
 
 // Determine working directory
-let workDir;
-let isPortableMode = false;
+const exeDir = path.dirname(process.execPath);
+const launchContext = resolveLaunchContext({
+  isPackaged,
+  isPortable,
+  cwd: process.cwd(),
+  exeDir,
+  snapshotDir: __dirname,
+  env: process.env,
+  homedir: os.homedir(),
+  platform: os.platform(),
+  hasExternalProjectFiles: fs.existsSync(path.join(exeDir, 'package.json')),
+});
+const workDir = launchContext.workDir;
+const isPortableMode = launchContext.isPortableMode;
 
-if (isPackaged) {
-  const exeDir = path.dirname(process.execPath);
-  const hasProjectFiles = fs.existsSync(path.join(exeDir, 'package.json'));
-
-  if (isPortable || !hasProjectFiles) {
-    // Portable mode: use AppData
-    isPortableMode = true;
-    const appDataDir = path.join(os.homedir(), 'AppData', 'Local', 'ChaoxingSignin');
-    workDir = path.join(appDataDir, 'app');
-
-    // Create directories if they don't exist
-    if (!fs.existsSync(workDir)) {
-      fs.mkdirSync(workDir, { recursive: true });
-    }
-
-    // Initialize portable mode on first run
-    if (!fs.existsSync(path.join(workDir, 'package.json'))) {
-      console.log('Initializing portable mode...');
-      initializePortableMode(exeDir, workDir, syncUI);
-    }
-  } else {
-    // Project mode: use exe directory
-    workDir = exeDir;
+if (isPortableMode) {
+  if (!fs.existsSync(workDir)) {
+    fs.mkdirSync(workDir, { recursive: true });
   }
-} else {
-  // Development mode: use current directory
-  workDir = process.cwd();
 }
 
 if (isDebug) {
@@ -55,7 +45,9 @@ if (isDebug) {
 }
 
 // Start the server
-const serverPath = path.join(workDir, 'apps', 'server', 'build', 'index.js');
+const serverPath = isPackaged
+  ? path.join(launchContext.sourceDir, 'apps', 'server', 'build', 'index.js')
+  : path.join(workDir, 'apps', 'server', 'build', 'index.js');
 
 if (!fs.existsSync(serverPath)) {
   console.error('Error: Server build not found at', serverPath);
@@ -65,17 +57,27 @@ if (!fs.existsSync(serverPath)) {
 
 // Check if node_modules exists
 const nodeModulesPath = path.join(workDir, 'node_modules');
-if (!fs.existsSync(nodeModulesPath)) {
+const serverNodeModulesPath = path.join(workDir, 'apps', 'server', 'node_modules');
+if (!isPackaged && !fs.existsSync(nodeModulesPath) && !fs.existsSync(serverNodeModulesPath)) {
+  if (isPackaged) {
+    console.error('Error: Embedded dependencies missing at', serverNodeModulesPath);
+    process.exit(1);
+  }
   console.log('Installing dependencies...');
   installDependencies(workDir);
 }
 
 // Start the server
 console.log('Starting Chaoxing Signin...');
-const server = spawn('node', [serverPath], {
+const { command, args: serverArgs } = getServerCommand({
+  isPackaged,
+  processExecPath: process.execPath,
+  serverPath,
+});
+const server = spawn(command, serverArgs, {
   cwd: workDir,
   stdio: 'inherit',
-  env: { ...process.env, NODE_ENV: 'production' }
+  env: { ...process.env, NODE_ENV: 'production', CHAOXING_DATA_DIR: workDir }
 });
 
 server.on('exit', (code) => {
@@ -104,7 +106,7 @@ function initializePortableMode(sourceDir, targetDir, syncUI) {
   ];
 
   // Directories to copy
-  const dirsToCopy = ['apps', 'packages'];
+  const dirsToCopy = ['apps/server/build', 'apps/server/node_modules', 'apps/web/dist'];
 
   // Copy files
   filesToCopy.forEach(file => {
@@ -138,13 +140,14 @@ function copyRecursive(src, dest) {
     fs.mkdirSync(dest, { recursive: true });
   }
 
-  const entries = fs.readdirSync(src, { withFileTypes: true });
+  const entries = fs.readdirSync(src);
 
   for (const entry of entries) {
-    const srcPath = path.join(src, entry.name);
-    const destPath = path.join(dest, entry.name);
+    const srcPath = path.join(src, entry);
+    const destPath = path.join(dest, entry);
+    const isDirectory = fs.statSync(srcPath).isDirectory();
 
-    if (entry.isDirectory()) {
+    if (isDirectory) {
       copyRecursive(srcPath, destPath);
     } else {
       fs.copyFileSync(srcPath, destPath);

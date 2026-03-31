@@ -37,16 +37,20 @@
   "pkg": {
     "scripts": [
       "launcher/packaged.cjs",
+      "launcher/runtime.cjs",
       "apps/server/build/**/*.js"
     ],
     "assets": [
+      "package.json",
+      "pnpm-lock.yaml",
+      "pnpm-workspace.yaml",
+      "turbo.json",
+      "apps/server/build/**/*",
       "apps/web/dist/**/*",
+      "apps/server/node_modules/**/*",
       "apps/server/src/configs/**/*",
       "apps/server/src/env.json",
-      "apps/server/node_modules/koa-compose/**/*",
-      "apps/server/node_modules/@koa/router/**/*",
-      "apps/server/node_modules/http-errors/**/*",
-      "apps/server/node_modules/statuses/**/*",
+      "packages/**/*",
       "node_modules/.pnpm/**/*"
     ]
   }

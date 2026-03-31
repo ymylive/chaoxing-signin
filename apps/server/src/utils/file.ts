@@ -5,6 +5,29 @@ interface LocalData {
   users: User[];
 }
 
+const BUNDLED_STORAGE_PATH = path.join(__dirname, '../configs/storage.json');
+
+const ensureStorageFile = () => {
+  const dataDir = process.env.CHAOXING_DATA_DIR;
+  if (!dataDir) return BUNDLED_STORAGE_PATH;
+
+  const storagePath = path.join(dataDir, 'configs', 'storage.json');
+  if (!filehandle.existsSync(storagePath)) {
+    filehandle.mkdirSync(path.dirname(storagePath), { recursive: true });
+    filehandle.copyFileSync(BUNDLED_STORAGE_PATH, storagePath);
+  }
+
+  return storagePath;
+};
+
+export const getJsonFilePath = (fileURL: string) => {
+  if (fileURL === 'configs/storage.json') {
+    return ensureStorageFile();
+  }
+
+  return path.join(__dirname, '../' + fileURL);
+};
+
 /**
  * 储存用户凭证
  */
@@ -24,7 +47,7 @@ export const storeUser = (phone: string, user: User): User[] => {
   if (i === data.users.length) {
     data.users.push(user);
   }
-  filehandle.writeFileSync(path.join(__dirname, '../configs/storage.json'), JSON.stringify(data), 'utf8');
+  filehandle.writeFileSync(getJsonFilePath('configs/storage.json'), JSON.stringify(data), 'utf8');
   return data.users;
 };
 
@@ -39,5 +62,5 @@ export const getStoredUser = (phone: string): User | null => {
 };
 
 export const getJsonObject = (fileURL: string) => {
-  return JSON.parse(filehandle.readFileSync(path.join(__dirname, '../' + fileURL), 'utf8'));
+  return JSON.parse(filehandle.readFileSync(getJsonFilePath(fileURL), 'utf8'));
 };

@@ -1,7 +1,6 @@
 import fs from 'fs';
 import jsdom from 'jsdom';
 import { blue, red } from 'kolorist';
-import path from 'path';
 import prompts from 'prompts';
 import WebSocket from 'ws';
 import { getPPTActiveInfo, getSignType, preSign, preSign2, speculateType } from './functions/activity';
@@ -12,7 +11,7 @@ import { getObjectIdFromcxPan, PhotoSign, PhotoSign_2 } from './functions/photo'
 import { QRCodeSign } from './functions/qrcode';
 import { QrCodeScan } from './functions/tencent.qrcode';
 import { getIMParams, getLocalUsers, userLogin } from './functions/user';
-import { getJsonObject, getStoredUser, storeUser } from './utils/file';
+import { getJsonFilePath, getJsonObject, getStoredUser, storeUser } from './utils/file';
 import { delay } from './utils/helper';
 import { sendEmail } from './utils/mailer';
 import { PromptsOptions, addressPrompts, monitorPromptsQuestions } from './configs/prompts';
@@ -111,7 +110,7 @@ async function configure(phone: string) {
     }
 
     // eslint-disable-next-line @typescript-eslint/no-empty-function
-    fs.writeFile(path.join(__dirname, './configs/storage.json'), JSON.stringify(data), 'utf8', () => { });
+    fs.writeFile(getJsonFilePath('configs/storage.json'), JSON.stringify(data), 'utf8', () => { });
   }
 
   return JSON.parse(JSON.stringify({ mailing: config!.mailing, monitor: config!.monitor, cqserver: config!.cqserver }));
