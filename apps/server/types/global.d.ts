@@ -28,7 +28,6 @@ interface BasicCookie {
   _d: string;
   uf: string;
   vc3: string;
-  fid: string;
 }
 
 type UserParams = BasicCookie & {
