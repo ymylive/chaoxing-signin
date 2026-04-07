@@ -3,6 +3,7 @@
   "version": "4.3.5",
   "description": "超星学习通签到项目",
   "scripts": {
+    "test": "node --require ts-node/register/transpile-only --test test/**/*.test.cjs",
     "build": "tsc && node ./src/scripts/cplibs.js",
     "start": "node ./build/index.js",
     "serve": "node ./build/serve.js",

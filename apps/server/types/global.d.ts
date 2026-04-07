@@ -1,8 +1,9 @@
 interface MonitorConfig {
   delay: number;
-  lon: number;
-  lat: number;
+  lon: string;
+  lat: string;
   address: string;
+  presetAddress?: Array<{ lon: string; lat: string; address: string }>;
 }
 
 interface MailConfig {
@@ -27,6 +28,7 @@ interface BasicCookie {
   _d: string;
   uf: string;
   vc3: string;
+  fid: string;
 }
 
 type UserParams = BasicCookie & {

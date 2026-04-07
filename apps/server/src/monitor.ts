@@ -110,10 +110,12 @@ async function configure(phone: string) {
     }
 
     // eslint-disable-next-line @typescript-eslint/no-empty-function
-    fs.writeFile(getJsonFilePath('configs/storage.json'), JSON.stringify(data), 'utf8', () => { });
+    fs.writeFile(getJsonFilePath('configs/storage.json'), JSON.stringify(data), 'utf8', (err) => {
+      if (err) console.error('[configure] 配置写入失败:', err.message);
+    });
   }
 
-  return JSON.parse(JSON.stringify({ mailing: config!.mailing, monitor: config!.monitor, cqserver: config!.cqserver }));
+  return structuredClone({ mailing: config!.mailing, monitor: config!.monitor, cqserver: config!.cqserver });
 }
 
 async function Sign(realname: string, params: UserCookieType & { tuid: string; }, config: any, activity: Activity) {
@@ -199,7 +201,12 @@ async function handleMsg(this: CQ, data: string) {
   // 处理图片，是否二维码，发送一些其他反馈
   if (CQ.hasImage(data) && this.getCache('params') !== undefined) {
     console.log('[图片]尝试二维码识别');
-    const img_url = data.match(/https:\/\/[\S]+[^\]]/g)![0];
+    const img_matches = data.match(/https:\/\/[\S]+[^\]]/g);
+    if (!img_matches || img_matches.length === 0) {
+      console.error('[handleMsg] 无法从消息中提取图片URL');
+      return;
+    }
+    const img_url = img_matches[0];
     const params = this.getCache('params');
     const qr_str = (await QrCodeScan(img_url, 'url')).CodeResults?.[0].Url;
 

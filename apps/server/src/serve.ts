@@ -14,7 +14,76 @@ import { QRCodeSign } from './functions/qrcode';
 import { QrCodeScan } from './functions/tencent.qrcode';
 import { getAccountInfo, getCourses, getPanToken, userLogin } from './functions/user';
 import { getJsonObject } from './utils/file';
+import { resolveStaticAssetPath } from './serve-boundary';
 const ENVJSON = getJsonObject('env.json');
+
+interface LoginBody {
+  phone: string;
+  password: string;
+}
+
+interface ActivityBody {
+  uid: string;
+  _d: string;
+  vc3: string;
+  uf: string;
+}
+
+interface QRCodeBody {
+  name: string;
+  fid: string;
+  uid: string;
+  activeId: string;
+  uf: string;
+  _d: string;
+  vc3: string;
+  enc: string;
+  lat: string;
+  lon: string;
+  address: string;
+  altitude: string;
+}
+
+interface LocationBody {
+  uf: string;
+  _d: string;
+  vc3: string;
+  name: string;
+  uid: string;
+  lat: string;
+  lon: string;
+  fid: string;
+  address: string;
+  activeId: string;
+}
+
+interface GeneralBody {
+  uf: string;
+  _d: string;
+  vc3: string;
+  name: string;
+  activeId: string;
+  uid: string;
+  fid: string;
+}
+
+interface UvTokenBody {
+  uf: string;
+  _d: string;
+  uid: string;
+  vc3: string;
+}
+
+interface PhotoBody {
+  uf: string;
+  _d: string;
+  uid: string;
+  vc3: string;
+  name: string;
+  activeId: string;
+  fid: string;
+  objectId: string;
+}
 
 const app = new Koa();
 const router = new Router();
@@ -44,8 +113,9 @@ const getMonitorToken = (ctx: Koa.Context) => {
   const tokenFromHeader = ctx.get('X-Monitor-Token');
   if (tokenFromHeader) return tokenFromHeader;
   if (typeof ctx.query.monitorToken === 'string') return ctx.query.monitorToken;
-  if (ctx.request.body && typeof (ctx.request.body as any).monitorToken === 'string') {
-    return (ctx.request.body as any).monitorToken;
+  const body = ctx.request.body as Record<string, unknown> | undefined;
+  if (body && typeof body.monitorToken === 'string') {
+    return body.monitorToken;
   }
   return '';
 };
@@ -58,6 +128,15 @@ const parseMonitorStartPayload = (rawBody: string) => {
   }
 };
 
+const requireFields = (body: Record<string, unknown>, fields: string[]): string | null => {
+  for (const field of fields) {
+    if (body[field] === undefined || body[field] === null || body[field] === '') {
+      return field;
+    }
+  }
+  return null;
+};
+
 const createUploadForm = () => {
   return new multiparty.Form({
     maxFilesSize: MAX_UPLOAD_BYTES,
@@ -65,22 +144,28 @@ const createUploadForm = () => {
   });
 };
 
+// 全局错误处理（最外层，捕获所有下游中间件异常）
+app.use(async (ctx, next) => {
+  try {
+    await next();
+  } catch (err) {
+    const error = err instanceof Error ? err : new Error(String(err));
+    console.error(`[${ctx.method} ${ctx.path}] ${error.message}`);
+    ctx.status = ctx.status === 200 ? 500 : ctx.status;
+    ctx.body = { code: ctx.status, msg: 'Internal Server Error' };
+  }
+});
+
 // serve static web ui first
 app.use(async (ctx, next) => {
   try {
-    // map request to file under WEB_ROOT
-    const reqPath = ctx.path === '/' ? 'index.html' : ctx.path.replace(/^\//, '');
-    // only allow typical asset files and index.html
-    const allowed = /^(index.html|assets\/|.*\.(css|js|map|svg|png|jpg|jpeg|ico|txt))$/i;
-    if (allowed.test(reqPath)) {
-      const fp = path.join(WEB_ROOT, reqPath);
-      if (fs.existsSync(fp) && fs.statSync(fp).isFile()) {
-        ctx.type = path.extname(fp);
-        ctx.body = fs.createReadStream(fp);
-        return;
-      }
+    const fp = resolveStaticAssetPath(WEB_ROOT, ctx.path);
+    if (fp && fs.existsSync(fp) && fs.statSync(fp).isFile()) {
+      ctx.type = path.extname(fp);
+      ctx.body = fs.createReadStream(fp);
+      return;
     }
-  } catch {}
+  } catch { /* fall through to next middleware */ }
   await next();
 });
 
@@ -95,7 +180,14 @@ router.get('/', async (ctx) => {
 });
 
 router.post('/login', async (ctx) => {
-  const { phone, password } = ctx.request.body as any;
+  const body = ctx.request.body as Record<string, unknown>;
+  const missing = requireFields(body, ['phone', 'password']);
+  if (missing) {
+    ctx.status = 400;
+    ctx.body = { code: 400, msg: `Missing required field: ${missing}` };
+    return;
+  }
+  const { phone, password } = body as { phone: string; password: string };
   const params = await userLogin(phone, password);
   // 登陆失败
   if (typeof params === 'string') {
@@ -107,7 +199,14 @@ router.post('/login', async (ctx) => {
 });
 
 router.post('/activity', async (ctx) => {
-  const { uid, _d, vc3, uf } = ctx.request.body as any;
+  const body = ctx.request.body as Record<string, unknown>;
+  const missing = requireFields(body, ['uid', '_d', 'vc3', 'uf']);
+  if (missing) {
+    ctx.status = 400;
+    ctx.body = { code: 400, msg: `Missing required field: ${missing}` };
+    return;
+  }
+  const { uid, _d, vc3, uf } = body as { uid: string; _d: string; vc3: string; uf: string };
   const courses = await getCourses(uid, _d, vc3);
   // 身份凭证过期
   if (typeof courses === 'string') {
@@ -138,7 +237,7 @@ router.post('/activity', async (ctx) => {
 });
 
 router.post('/qrcode', async (ctx) => {
-  const { name, fid, uid, activeId, uf, _d, vc3, enc, lat, lon, address, altitude } = ctx.request.body as any;
+  const { name, fid, uid, activeId, uf, _d, vc3, enc, lat, lon, address, altitude } = ctx.request.body as QRCodeBody;
   const res = await QRCodeSign({
     enc,
     name,
@@ -162,7 +261,7 @@ router.post('/qrcode', async (ctx) => {
 });
 
 router.post('/location', async (ctx) => {
-  const { uf, _d, vc3, name, uid, lat, lon, fid, address, activeId } = ctx.request.body as any;
+  const { uf, _d, vc3, name, uid, lat, lon, fid, address, activeId } = ctx.request.body as LocationBody;
   const res = await LocationSign({
     uf,
     _d,
@@ -184,7 +283,7 @@ router.post('/location', async (ctx) => {
 });
 
 router.post('/general', async (ctx) => {
-  const { uf, _d, vc3, name, activeId, uid, fid } = ctx.request.body as any;
+  const { uf, _d, vc3, name, activeId, uid, fid } = ctx.request.body as GeneralBody;
   const res = await GeneralSign({
     uf,
     _d,
@@ -203,7 +302,7 @@ router.post('/general', async (ctx) => {
 });
 
 router.post('/uvtoken', async (ctx) => {
-  const { uf, _d, uid, vc3 } = ctx.request.body as any;
+  const { uf, _d, uid, vc3 } = ctx.request.body as UvTokenBody;
   const res = await getPanToken({
     uf,
     _d,
@@ -271,7 +370,7 @@ router.post('/upload', async (ctx) => {
 });
 
 router.post('/photo', async (ctx) => {
-  const { uf, _d, uid, vc3, name, activeId, fid, objectId } = ctx.request.body as any;
+  const { uf, _d, uid, vc3, name, activeId, fid, objectId } = ctx.request.body as PhotoBody;
   const res = await PhotoSign({
     uf,
     _d,
@@ -323,7 +422,8 @@ router.post('/qrocr', async (ctx) => {
       form.parse(ctx.req);
     });
     ctx.body = result;
-  } catch {
+  } catch (error) {
+    console.error('[qrocr] 解析失败:', error instanceof Error ? error.message : error);
     ctx.status = 413;
     ctx.body = '识别失败';
   }

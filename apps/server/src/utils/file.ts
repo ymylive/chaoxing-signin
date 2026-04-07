@@ -55,7 +55,7 @@ export const getStoredUser = (phone: string): User | null => {
   const data: User[] = getJsonObject('configs/storage.json').users;
   for (let i = 0; i < data.length; i++) {
     if (data[i].phone === phone) {
-      return JSON.parse(JSON.stringify(data[i]));
+      return structuredClone(data[i]);
     }
   }
   return null;

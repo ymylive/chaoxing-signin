@@ -35,12 +35,13 @@ const request = (url: string, options: RequestOptions, payload?: any): Promise<R
 
   const protocol = url.startsWith('https') ? https : http;
 
+  const REQUEST_TIMEOUT_MS = 30_000;
+
   const result = new Promise<ResponseType>((resolve, reject) => {
     let data = '';
 
-    const req = protocol.request(url, { headers: options.headers, method: options.method }, (res) => {
+    const req = protocol.request(url, { headers: options.headers, method: options.method, timeout: REQUEST_TIMEOUT_MS }, (res) => {
       if (options.gzip) {
-        // 若启用了gzip，进行转换再返回，否则乱码
         const gzip = zlib.createGunzip();
         res.pipe(gzip);
         gzip.on('data', (chunk) => {
@@ -49,8 +50,10 @@ const request = (url: string, options: RequestOptions, payload?: any): Promise<R
         gzip.on('end', () => {
           resolve({ data, headers: res.headers, statusCode: res.statusCode });
         });
+        gzip.on('error', (e) => {
+          reject(e);
+        });
       } else {
-        // 返回内容为字符串的情况下直接拼接返回
         res.on('data', (chunk) => {
           data += chunk;
         });
@@ -61,6 +64,14 @@ const request = (url: string, options: RequestOptions, payload?: any): Promise<R
           reject(e);
         });
       }
+    });
+
+    req.on('timeout', () => {
+      req.destroy(new Error(`Request timeout after ${REQUEST_TIMEOUT_MS}ms: ${url}`));
+    });
+
+    req.on('error', (e) => {
+      reject(e);
     });
 
     if (options.method === RequestMethod.POST) {

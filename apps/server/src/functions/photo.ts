@@ -5,13 +5,7 @@ import path from 'path';
 import { CHAT_GROUP, PANCHAOXING, PANLIST, PANUPLOAD, PPTSIGN } from '../configs/api';
 import { cookieSerialize, request } from '../utils/request';
 
-export const PhotoSign = async (
-  args: BasicCookie & { fid: string; objectId: string; name: string; activeId: string }
-): Promise<string> => {
-  const { name, activeId, fid, objectId, ...cookies } = args;
-  const url = `${PPTSIGN.URL}?activeId=${activeId}&uid=${
-    cookies._uid
-  }&clientip=&useragent=&latitude=-1&longitude=-1&appType=15&fid=${fid}&objectId=${objectId}&name=${encodeURIComponent(name)}`;
+const photoSignRequest = async (url: string, cookies: BasicCookie): Promise<string> => {
   const result = await request(url, {
     headers: {
       Cookie: cookieSerialize(cookies),
@@ -22,17 +16,20 @@ export const PhotoSign = async (
   return msg;
 };
 
+export const PhotoSign = async (
+  args: BasicCookie & { fid: string; objectId: string; name: string; activeId: string }
+): Promise<string> => {
+  const { name, activeId, fid, objectId, ...cookies } = args;
+  const url = `${PPTSIGN.URL}?activeId=${activeId}&uid=${
+    cookies._uid
+  }&clientip=&useragent=&latitude=-1&longitude=-1&appType=15&fid=${fid}&objectId=${objectId}&name=${encodeURIComponent(name)}`;
+  return photoSignRequest(url, cookies);
+};
+
 export const PhotoSign_2 = async (args: BasicCookie & { objectId: string; activeId: string }): Promise<string> => {
   const { activeId, objectId, ...cookies } = args;
   const url = `${CHAT_GROUP.SIGN.URL}?activeId=${activeId}&uid=${cookies._uid}&clientip=&useragent=&latitude=-1&longitude=-1&fid=0&objectId=${objectId}`;
-  const result = await request(url, {
-    headers: {
-      Cookie: cookieSerialize(cookies),
-    },
-  });
-  const msg = result.data === 'success' ? '[拍照]签到成功' : `[拍照]${result.data}`;
-  console.log(msg);
-  return msg;
+  return photoSignRequest(url, cookies);
 };
 
 // 在Termux或其他终端中使用，从云盘获取图片
@@ -97,9 +94,11 @@ export const uploadPhoto = async (args: BasicCookie & { buffer: Buffer; token: s
   );
 
   // 删除临时文件
-  fs.unlink(tempFilePath, (err) => {
-    err && console.error(err);
-  });
+  try {
+    fs.unlinkSync(tempFilePath);
+  } catch (err) {
+    console.error('[uploadPhoto] 临时文件清理失败:', err);
+  }
 
   return result.data;
 };

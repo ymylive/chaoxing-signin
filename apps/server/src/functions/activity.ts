@@ -31,7 +31,7 @@ export const traverseCourseActivity = async (args: BasicCookie & { courses: Cour
       try {
         // 任务数组中任意一个成功就返回；否则，抛出异常
         return await Promise.any(tasks);
-      } catch (error) { /* empty */ }
+      } catch { /* all tasks in this batch rejected, try next batch */ }
       // 每轮请求任务组之后，清空任务数组供下轮使用
       tasks = [];
     }
@@ -80,7 +80,7 @@ export const getActivity = async (args: BasicCookie & { course: CourseType; }): 
     return 'Too Frequent';
   }
   // 此课程最新活动并非有效签到
-  throw 'Not Available';
+  throw new Error('Not Available');
 };
 
 /**

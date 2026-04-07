@@ -28,7 +28,8 @@ export function sendEmail(args: { aid: string; uid: string; realname: string; st
       subject: '服务器签到反馈',
       html: `<table border="1"><thead><th>aid</th><th>uid</th><th>name</th><th>status</th></thead><tbody><td>${escapeHtml(aid)}</td><td>${escapeHtml(uid)}</td><td>${escapeHtml(realname)}</td><td>${escapeHtml(status)}</td></tbody></table>`,
     },
-    () => {
+    (err) => {
+      if (err) console.error('[sendEmail] 邮件发送失败:', err.message);
       transporter.close();
     }
   );
